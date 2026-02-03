@@ -1,0 +1,58 @@
+# =========================
+# PHẦN CHUNG (HỆ THỐNG & IDE)
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.suo
+*.user
+
+# =========================
+# PHẦN BACKEND (.NET / C#)
+# =========================
+# Bỏ qua thư mục build và obj (quan trọng nhất)
+bin/
+obj/
+
+# Bỏ qua file cấu hình user cụ thể và cache của Visual Studio
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+
+# Bỏ qua các file log
+*.log
+
+# Bỏ qua file môi trường dev nếu chứa key nhạy cảm (Tùy chọn)
+# appsettings.Development.json
+appsettings.Local.json
+
+# =========================
+# PHẦN FRONTEND (REACT / NODEJS)
+# =========================
+# Thư viện node (Rất nặng, KHÔNG ĐƯỢC up lên git)
+node_modules/
+
+# Thư mục chứa code đã build (Vite thường dùng 'dist', CRA dùng 'build')
+dist/
+build/
+
+# Các file biến môi trường (Chứa API Key, không nên public)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# File log của npm hoặc yarn
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================
+# KIỂM THỬ (TESTING)
+# =========================
+coverage/
+TestResults/
