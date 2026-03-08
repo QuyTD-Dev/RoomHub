@@ -1,19 +1,29 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Application.Interfaces;
+using Application.Interfaces.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Controllers
 {
     public class ChatController : Controller
     {
-        // Giao diện Chat dành cho Người thuê nhà
-        public IActionResult Tenant()
+        private readonly IMessageService _messageService;
+
+        public ChatController(IMessageService messageService)
         {
-            return View();
+            _messageService = messageService;
         }
 
-        // Giao diện Chat dành cho Chủ nhà
-        public IActionResult Owner()
+        public async Task<IActionResult> Tenant()
         {
-            return View();
+            // Lấy lịch sử chat của 2 ID ảo này truyền ra View
+            var history = await _messageService.GetConversationAsync("tenant-123", "owner-456");
+            return View(history);
+        }
+
+        public async Task<IActionResult> Owner()
+        {
+            var history = await _messageService.GetConversationAsync("tenant-123", "owner-456");
+            return View(history);
         }
     }
 }

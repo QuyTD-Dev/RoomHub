@@ -1,5 +1,7 @@
-﻿using Domain.Entities;
+﻿using Application.Interfaces.Services;
+using Domain.Entities;
 using Infrastructure.Persistence;
+using Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -38,6 +40,8 @@ namespace Infrastructure
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+
+            services.AddScoped<IMessageService, MessageService>();
 
             return services;
         }

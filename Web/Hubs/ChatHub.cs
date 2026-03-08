@@ -1,16 +1,38 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Application.Interfaces;
+using Application.Interfaces.Services;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Web.Hubs
 {
-    // Hub là nơi nhận và phân phối tin nhắn đến các client (trình duyệt) đang kết nối
     public class ChatHub : Hub
     {
-        // Hàm này sẽ được gọi từ mã JavaScript ở trình duyệt (Frontend)
-        public async Task SendMessage(string senderRole, string message)
+        private readonly IMessageService _messageService;
+
+        public ChatHub(IMessageService messageService)
         {
-            // Tạm thời ở bước này: Phát lại tin nhắn cho TẤT CẢ các tab đang mở
-            // (Sau này chúng ta sẽ tối ưu chỉ gửi cho đúng RoomId/UserId)
-            await Clients.All.SendAsync("ReceiveMessage", senderRole, message);
+            _messageService = messageService;
+        }
+
+        // Nhận SenderId và ReceiverId trực tiếp từ Giao diện
+        public async Task SendMessage(string senderId, string receiverId, string message)
+        {
+            // SAU NÀY KHI CÓ LOGIN: Bạn có thể lấy ID người gửi bằng lệnh sau
+            // string realSenderId = Context.UserIdentifier;
+
+            try
+            {
+                // Cố gắng lưu vào Database
+                await _messageService.SaveMessageAsync(senderId, receiverId, message);
+            }
+            catch (Exception ex)
+            {
+                // Nếu User chưa tồn tại trong DB (do team Auth chưa làm xong), 
+                // in ra log chứ không làm sập chức năng Chat.
+                Console.WriteLine($"[Cảnh báo Chat] Chưa lưu được DB vì: {ex.InnerException?.Message ?? ex.Message}");
+            }
+
+            // Phát sóng tin nhắn lại cho TẤT CẢ màn hình.
+            await Clients.All.SendAsync("ReceiveMessage", senderId, message);
         }
     }
 }
