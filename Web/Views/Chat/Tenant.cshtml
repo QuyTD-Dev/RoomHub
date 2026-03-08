@@ -70,7 +70,7 @@
                 </div>
             </div>
 
-            <div class="flex-grow-1 p-4 overflow-auto chat-scrollbar bg-light d-flex flex-column gap-3">
+            <div class="flex-grow-1 p-4 overflow-auto chat-scrollbar bg-light d-flex flex-column gap-3" id="chatBox">
                 <div class="d-flex align-items-end" style="max-width: 80%;">
                     <img src="https://ui-avatars.com/api/?name=Bác+Ba&background=random" class="rounded-circle me-2 mb-4 flex-shrink-0" style="width: 32px; height: 32px;" alt="Avatar">
                     <div>
@@ -91,12 +91,79 @@
             <div class="p-3 border-top bg-white d-flex align-items-center gap-3">
                 <button class="btn btn-link text-muted hover-theme p-0 border-0 shadow-none fs-5"><i class="fa-solid fa-paperclip"></i></button>
                 <div class="flex-grow-1">
-                    <input type="text" class="form-control rounded-pill bg-light border-0 py-2 px-4 shadow-none" placeholder="Nhập tin nhắn...">
+                    <input type="text" id="messageInput" class="form-control rounded-pill bg-light border-0 py-2 px-4 shadow-none" placeholder="Nhập tin nhắn...">
                 </div>
-                <button class="btn bg-theme rounded-circle d-flex align-items-center justify-content-center border-0 shadow-sm flex-shrink-0 hover-theme" style="width: 44px; height: 44px; color: white;">
+                <button id="sendButton" class="btn bg-theme rounded-circle d-flex align-items-center justify-content-center border-0 shadow-sm flex-shrink-0 hover-theme" style="width: 44px; height: 44px; color: white;">
                     <i class="fa-solid fa-paper-plane"></i>
                 </button>
             </div>
         </div>
     </div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+
+<script>
+    // 1. Khởi tạo kết nối đến ChatHub
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/chathub")
+        .build();
+
+    // 2. Lắng nghe tin nhắn mới từ Server gửi về
+    connection.on("ReceiveMessage", function (senderRole, message) {
+        const chatBox = document.getElementById("chatBox");
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        let msgHtml = "";
+        if (senderRole === "Tenant") {
+            // Tin nhắn của chính mình (Màu Cam - Căn phải)
+            msgHtml = `
+            <div class="d-flex flex-column align-items-end align-self-end" style="max-width: 80%;">
+                <div class="bg-theme p-3 shadow-sm bubble-right">
+                    <p class="mb-0" style="font-size: 0.9rem;">${message}</p>
+                </div>
+                <small class="text-muted d-block mt-1 text-end" style="font-size: 0.7rem;">${now}</small>
+            </div>`;
+        } else {
+            // Tin nhắn từ Owner (Màu Trắng - Căn trái)
+            msgHtml = `
+            <div class="d-flex align-items-end" style="max-width: 80%;">
+                <img src="https://ui-avatars.com/api/?name=Bác+Ba&background=random" class="rounded-circle me-2 mb-4 flex-shrink-0" style="width: 32px; height: 32px;">
+                <div>
+                    <div class="bg-white p-3 shadow-sm border border-light bubble-left text-dark">
+                        <p class="mb-0" style="font-size: 0.9rem;">${message}</p>
+                    </div>
+                    <small class="text-muted d-block mt-1" style="font-size: 0.7rem;">${now}</small>
+                </div>
+            </div>`;
+        }
+
+        // Nhúng tin nhắn vào giao diện và cuộn xuống dưới cùng
+        chatBox.insertAdjacentHTML('beforeend', msgHtml);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
+    // 3. Bắt đầu kết nối
+    connection.start().catch(function (err) {
+        return console.error(err.toString());
+    });
+
+    // 4. Bắt sự kiện bấm nút Gửi
+    document.getElementById("sendButton").addEventListener("click", function (event) {
+        const message = document.getElementById("messageInput").value;
+        if(message.trim() !== "") {
+            // Gửi lên Server với định danh là "Tenant"
+            connection.invoke("SendMessage", "Tenant", message).catch(function (err) {
+                return console.error(err.toString());
+            });
+            document.getElementById("messageInput").value = ""; // Xóa input sau khi gửi
+        }
+        event.preventDefault();
+    });
+
+    // Hỗ trợ bấm Enter để gửi
+    document.getElementById("messageInput").addEventListener("keypress", function (e) {
+        if (e.key === 'Enter') {
+            document.getElementById("sendButton").click();
+        }
+    });
+</script>
