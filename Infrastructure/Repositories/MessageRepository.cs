@@ -1,33 +1,27 @@
-﻿using Application.Interfaces;
-using Application.Interfaces.Services;
+﻿using Application.Interfaces.Repositories;
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Infrastructure.Services
+namespace Infrastructure.Repositories
 {
-    public class MessageService : IMessageService
+    public class MessageRepository : IMessageRepository
     {
         private readonly ApplicationDbContext _context;
 
-        public MessageService(ApplicationDbContext context)
+        public MessageRepository(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        public async Task<Message> SaveMessageAsync(string senderId, string receiverId, string content)
+        public async Task AddAsync(Message message)
         {
-            var message = new Message
-            {
-                SenderId = senderId,
-                ReceiverId = receiverId,
-                Content = content,
-                SentAt = DateTime.UtcNow
-            };
+            await _context.Messages.AddAsync(message);
+        }
 
-            _context.Messages.Add(message);
+        public async Task SaveChangesAsync()
+        {
             await _context.SaveChangesAsync();
-            return message;
         }
 
         public async Task<List<Message>> GetConversationAsync(string userId1, string userId2)
