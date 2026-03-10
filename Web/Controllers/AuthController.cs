@@ -1,5 +1,7 @@
-﻿using Application.DTOs.Auth;
+using Application.DTOs.Auth;
 using Application.Interfaces.Services;
+using Domain.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Web.Models;
 
@@ -8,10 +10,12 @@ namespace Web.Controllers
     public class AuthController : Controller
     {
         private readonly IAuthService _authService;
+        private readonly SignInManager<ApplicationUser> _signInManager;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, SignInManager<ApplicationUser> signInManager)
         {
             _authService = authService;
+            _signInManager = signInManager;
         }
 
         // =========================
@@ -128,6 +132,7 @@ namespace Web.Controllers
 
             return RedirectToAction("VerifySuccess");
         }
+
         public IActionResult VerifySuccess()
         {
             return View();
@@ -157,8 +162,42 @@ namespace Web.Controllers
 
             if (result)
                 return Json(new { success = true, message = "Mã OTP mới đã được gửi vào email của bạn." });
-            
+
             return Json(new { success = false, message = "Phiên đăng ký đã hết hạn. Vui lòng đăng ký lại." });
+        }
+
+        // =========================
+        // EXTERNAL LOGIN (GOOGLE / FACEBOOK)
+        // =========================
+
+        [HttpGet]
+        public IActionResult LoginGoogle()
+        {
+            var redirectUrl = Url.Action(nameof(ExternalLoginCallback), "Auth");
+            var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
+            return Challenge(properties, "Google");
+        }
+
+        [HttpGet]
+        public IActionResult LoginFacebook()
+        {
+            var redirectUrl = Url.Action(nameof(ExternalLoginCallback), "Auth");
+            var properties = _signInManager.ConfigureExternalAuthenticationProperties("Facebook", redirectUrl);
+            return Challenge(properties, "Facebook");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExternalLoginCallback()
+        {
+            var result = await _authService.ExternalLoginCallbackAsync();
+
+            if (!result)
+            {
+                TempData["Error"] = "Đăng nhập mạng xã hội thất bại. Vui lòng thử lại.";
+                return RedirectToAction(nameof(Login));
+            }
+
+            return RedirectToAction("Index", "Home");
         }
     }
 }

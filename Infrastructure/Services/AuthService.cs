@@ -1,8 +1,9 @@
-﻿using Application.DTOs.Auth;
+using Application.DTOs.Auth;
 using Application.Interfaces.Services;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Caching.Memory;
+using System.Security.Claims;
 using System.Security.Cryptography;
 
 namespace Infrastructure.Services
@@ -154,6 +155,64 @@ namespace Infrastructure.Services
 
             // Gửi lại email
             await _emailService.SendOtpEmailAsync(email, newOtp);
+
+            return true;
+        }
+
+        // =========================
+        // EXTERNAL LOGIN (GOOGLE / FACEBOOK)
+        // =========================
+
+        public async Task<bool> ExternalLoginCallbackAsync()
+        {
+            // Lấy thông tin từ provider (Google/Facebook)
+            var info = await _signInManager.GetExternalLoginInfoAsync();
+            if (info == null) return false;
+
+            // Thử đăng nhập nếu user đã từng dùng social login này
+            var signInResult = await _signInManager.ExternalLoginSignInAsync(
+                info.LoginProvider,
+                info.ProviderKey,
+                isPersistent: false,
+                bypassTwoFactor: true);
+
+            if (signInResult.Succeeded)
+                return true;
+
+            // Lấy email từ claims do provider cung cấp
+            var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+            if (string.IsNullOrEmpty(email))
+                return false;
+
+            // Tìm user theo email (có thể đã đăng ký bằng email thông thường trước đó)
+            var user = await _userManager.FindByEmailAsync(email);
+
+            if (user == null)
+            {
+                // Tạo user mới từ thông tin social
+                var fullName = info.Principal.FindFirstValue(ClaimTypes.Name) ?? email;
+
+                user = new ApplicationUser
+                {
+                    UserName = email,
+                    Email = email,
+                    FullName = fullName,
+                    EmailConfirmed = true  // Email qua OAuth đã được xác thực bởi provider
+                };
+
+                var createResult = await _userManager.CreateAsync(user);
+                if (!createResult.Succeeded)
+                    return false;
+
+                // Gán role mặc định cho user mới đăng nhập qua social
+                await _userManager.AddToRoleAsync(user, "Tenant");
+            }
+
+            // Liên kết tài khoản social với user trong hệ thống
+            await _userManager.AddLoginAsync(user, info);
+
+            // Đăng nhập
+            await _signInManager.SignInAsync(user, isPersistent: false);
 
             return true;
         }

@@ -1,4 +1,4 @@
-﻿using Domain.Entities;
+using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -38,6 +38,19 @@ namespace Infrastructure
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+
+            // External OAuth Providers
+            services.AddAuthentication()
+                .AddGoogle(options =>
+                {
+                    options.ClientId = configuration["Authentication:Google:ClientId"]!;
+                    options.ClientSecret = configuration["Authentication:Google:ClientSecret"]!;
+                })
+                .AddFacebook(options =>
+                {
+                    options.AppId = configuration["Authentication:Facebook:AppId"]!;
+                    options.AppSecret = configuration["Authentication:Facebook:AppSecret"]!;
+                });
 
             return services;
         }

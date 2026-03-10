@@ -1,4 +1,4 @@
-﻿using Application.DTOs.Auth;
+using Application.DTOs.Auth;
 
 namespace Application.Interfaces.Services
 {
@@ -13,5 +13,7 @@ namespace Application.Interfaces.Services
         Task<bool> CheckEmailExistsAsync(string email);
 
         Task<bool> ResendOtpAsync(string email);
+
+        Task<bool> ExternalLoginCallbackAsync();
     }
 }
