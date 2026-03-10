@@ -1,4 +1,4 @@
-﻿using Application.DTOs.Auth;
+using Application.DTOs.Auth;
 using Application.Interfaces.Services;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -30,16 +30,16 @@ namespace Infrastructure.Services
         // LOGIN
         // =========================
 
-        public async Task<bool> LoginAsync(LoginRequest request)
+        public async Task<SignInResult> LoginAsync(LoginRequest request)
         {
             var user = await _userManager.FindByEmailAsync(request.Email);
 
             if (user == null)
-                return false;
+                return SignInResult.Failed;
 
             // chưa verify email
             if (!user.EmailConfirmed)
-                return false;
+                return SignInResult.NotAllowed;
 
             var result = await _signInManager.PasswordSignInAsync(
                 user.UserName,
@@ -47,7 +47,7 @@ namespace Infrastructure.Services
                 request.RememberMe,
                 lockoutOnFailure: true);
 
-            return result.Succeeded;
+            return result;
         }
 
         // =========================
@@ -156,6 +156,91 @@ namespace Infrastructure.Services
             await _emailService.SendOtpEmailAsync(email, newOtp);
 
             return true;
+        }
+
+        // =========================
+        // FORGOT PASSWORD
+        // =========================
+
+        public async Task<bool> ForgotPasswordAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+
+            // Không tiết lộ user có tồn tại hay không (security best practice)
+            if (user == null)
+                return true;
+
+            // Tạo token reset password từ ASP.NET Identity
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            // Lưu token vào cache 15 phút
+            _cache.Set($"RESET_{email}", token, TimeSpan.FromMinutes(15));
+
+            // Tạo OTP 6 số để hiển thị thân thiện hơn trên UI
+            var otp = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
+            _cache.Set($"RESET_OTP_{email}", otp, TimeSpan.FromMinutes(15));
+
+            await _emailService.SendPasswordResetOtpAsync(email, otp);
+
+            return true;
+        }
+
+        // =========================
+        // VERIFY RESET OTP
+        // =========================
+
+        public Task<bool> VerifyResetOtpAsync(string email, string otp)
+        {
+            // Lấy OTP từ cache
+            if (!_cache.TryGetValue($"RESET_OTP_{email}", out string savedOtp))
+                return Task.FromResult(false);
+
+            if (savedOtp != otp)
+                return Task.FromResult(false);
+
+            // Xóa OTP đã dùng, đánh dấu email đã xác thực OTP (cho phép đặt lại mật khẩu)
+            _cache.Remove($"RESET_OTP_{email}");
+            _cache.Set($"RESET_VERIFIED_{email}", true, TimeSpan.FromMinutes(10));
+
+            return Task.FromResult(true);
+        }
+
+        // =========================
+        // RESET PASSWORD
+        // =========================
+
+        public async Task<IdentityResult> ResetPasswordAsync(ResetPasswordRequest request)
+        {
+            // Kiểm tra đã xác thực OTP chưa
+            if (!_cache.TryGetValue($"RESET_VERIFIED_{request.Email}", out bool verified) || !verified)
+                return IdentityResult.Failed(new IdentityError { Description = "Phiên làm việc đã hết hạn hoặc chưa xác thực OTP." });
+
+            // Lấy token từ cache
+            if (!_cache.TryGetValue($"RESET_{request.Email}", out string token))
+                return IdentityResult.Failed(new IdentityError { Description = "Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn." });
+
+            var user = await _userManager.FindByEmailAsync(request.Email);
+            if (user == null)
+                return IdentityResult.Failed(new IdentityError { Description = "Không tìm thấy người dùng." });
+
+            var result = await _userManager.ResetPasswordAsync(user, token, request.NewPassword);
+
+            if (result.Succeeded)
+            {
+                // Nếu người dùng reset được mật khẩu bằng OTP (có nghĩa là họ sở hữu email này)
+                // nhưng trước đó chưa xác thực email thì đây là dịp để xác thực luôn cho họ.
+                if (!user.EmailConfirmed)
+                {
+                    user.EmailConfirmed = true;
+                    await _userManager.UpdateAsync(user);
+                }
+
+                // Dọn cache
+                _cache.Remove($"RESET_{request.Email}");
+                _cache.Remove($"RESET_VERIFIED_{request.Email}");
+            }
+
+            return result;
         }
     }
 }
