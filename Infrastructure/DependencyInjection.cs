@@ -1,4 +1,4 @@
-﻿using Domain.Entities;
+using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -38,6 +38,10 @@ namespace Infrastructure
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+
+            // Application Services & Repositories
+            services.AddScoped<Application.Interfaces.Repositories.IRoomPostRepository, Infrastructure.Repositories.RoomPostRepository>();
+            services.AddScoped<Application.Interfaces.Services.IRoomPostService, Application.Services.RoomPostService>();
 
             return services;
         }
