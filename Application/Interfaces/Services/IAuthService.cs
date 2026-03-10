@@ -1,10 +1,10 @@
-﻿using Application.DTOs.Auth;
+using Application.DTOs.Auth;
 
 namespace Application.Interfaces.Services
 {
     public interface IAuthService
     {
-        Task<bool> LoginAsync(LoginRequest request);
+        Task<Microsoft.AspNetCore.Identity.SignInResult> LoginAsync(LoginRequest request);
 
         Task<bool> RegisterAsync(RegisterRequest request);
 
@@ -13,5 +13,11 @@ namespace Application.Interfaces.Services
         Task<bool> CheckEmailExistsAsync(string email);
 
         Task<bool> ResendOtpAsync(string email);
+
+        Task<bool> ForgotPasswordAsync(string email);
+
+        Task<bool> VerifyResetOtpAsync(string email, string otp);
+
+        Task<Microsoft.AspNetCore.Identity.IdentityResult> ResetPasswordAsync(ResetPasswordRequest request);
     }
 }
