@@ -1,4 +1,4 @@
-﻿@model Web.Models.RegisterViewModel
+@model Web.Models.RegisterViewModel
 @{
     Layout = null;
 }
@@ -15,6 +15,13 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Hide browser-native reveal button to avoid overlap with our custom eye icon */
+        input::-ms-reveal,
+        input::-ms-clear {
+            display: none;
+        }
+    </style>
 
 </head>
 
@@ -138,11 +145,17 @@
                             Mật khẩu
                         </label>
 
-                        <input asp-for="Password"
-                               id="Password"
-                               type="password"
-                               required
-                               class="w-full h-11 px-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                        <div class="relative">
+                            <input asp-for="Password"
+                                   id="Password"
+                                   type="password"
+                                   required
+                                   class="w-full h-11 pl-4 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                            <button type="button" onclick="togglePassword('Password', 'eyePass')"
+                                    class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 transition-colors focus:outline-none">
+                                <span id="eyePass" class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
+                            </button>
+                        </div>
 
                         <div class="text-sm mt-2 space-y-1">
 
@@ -172,11 +185,17 @@
                             Xác nhận mật khẩu
                         </label>
 
-                        <input asp-for="ConfirmPassword"
-                               id="ConfirmPassword"
-                               type="password"
-                               required
-                               class="w-full h-11 px-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                        <div class="relative">
+                            <input asp-for="ConfirmPassword"
+                                   id="ConfirmPassword"
+                                   type="password"
+                                   required
+                                   class="w-full h-11 pl-4 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                            <button type="button" onclick="togglePassword('ConfirmPassword', 'eyeConfirm')"
+                                    class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 transition-colors focus:outline-none">
+                                <span id="eyeConfirm" class="material-symbols-outlined" style="font-size: 20px;">visibility</span>
+                            </button>
+                        </div>
 
                         <span asp-validation-for="ConfirmPassword" class="text-red-500 text-sm"></span>
 
@@ -241,6 +260,16 @@
     </div>
 
     <script src="/js/register.js"></script>
-
+    <script>
+        function togglePassword(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (input && icon) {
+                const isPassword = input.type === 'password';
+                input.type = isPassword ? 'text' : 'password';
+                icon.textContent = isPassword ? 'visibility_off' : 'visibility';
+            }
+        }
+    </script>
 </body>
 </html>

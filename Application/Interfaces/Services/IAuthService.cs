@@ -4,7 +4,7 @@ namespace Application.Interfaces.Services
 {
     public interface IAuthService
     {
-        Task<bool> LoginAsync(LoginRequest request);
+        Task<Microsoft.AspNetCore.Identity.SignInResult> LoginAsync(LoginRequest request);
 
         Task<bool> RegisterAsync(RegisterRequest request);
 
@@ -14,6 +14,14 @@ namespace Application.Interfaces.Services
 
         Task<bool> ResendOtpAsync(string email);
 
+        // SOCIAL LOGIN
         Task<bool> ExternalLoginCallbackAsync();
+
+        // FORGOT PASSWORD
+        Task<bool> ForgotPasswordAsync(string email);
+
+        Task<bool> VerifyResetOtpAsync(string email, string otp);
+
+        Task<Microsoft.AspNetCore.Identity.IdentityResult> ResetPasswordAsync(ResetPasswordRequest request);
     }
 }

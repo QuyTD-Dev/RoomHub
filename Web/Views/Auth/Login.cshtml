@@ -1,4 +1,4 @@
-﻿@model Web.Models.LoginViewModel
+@model Web.Models.LoginViewModel
 @{
     Layout = null;
 }
@@ -16,6 +16,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Hide browser-native reveal button to avoid overlap with our custom eye icon */
+        input::-ms-reveal,
+        input::-ms-clear {
+            display: none;
+        }
+    </style>
 
 </head>
 
@@ -89,14 +96,14 @@
                             <input asp-for="Password"
                                    id="password"
                                    type="password"
-                                   class="w-full h-11 px-4 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                   class="w-full h-11 pl-4 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                                    placeholder="Nhập mật khẩu của bạn" />
 
                             <button type="button"
                                     id="togglePassword"
-                                    class="absolute right-3 top-3 text-gray-400">
+                                    class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 transition-colors focus:outline-none">
 
-                                <span class="material-symbols-outlined">
+                                <span class="material-symbols-outlined" style="font-size: 20px;">
                                     visibility
                                 </span>
 
@@ -122,7 +129,7 @@
 
                         </label>
 
-                        <a href="#"
+                        <a asp-controller="Auth" asp-action="ForgotPassword"
                            class="text-sm text-blue-600 hover:underline">
                             Quên mật khẩu?
                         </a>
