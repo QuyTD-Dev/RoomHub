@@ -2,157 +2,203 @@
 @model Application.DTOs.RoomPosts.CreateRoomViewModel
 
 @{
-    ViewData["Title"] = "Create Room Post";
+    Layout = null;
 }
-
-<div class="container mt-4">
-    <div class="card shadow-sm border-0 border-top border-primary border-4">
-        <div class="card-header bg-white pb-0">
-            <h4 class="text-primary mb-3"><i class="bi bi-house-add"></i> Create Room Post</h4>
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Create Room Post - RoomHub</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <script src="~/js/RoomPosts/create.js"></script>
+    <link rel="stylesheet" href="~/css/RoomPosts/create.css" />
+</head>
+<body class="bg-[#f4f4f4] dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-[1440px] mx-auto px-4 h-16 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <a asp-action="Index" class="flex items-center gap-3 text-primary text-2xl font-bold tracking-tight hover:opacity-90 transition">
+                    <span class="material-symbols-outlined text-3xl">real_estate_agent</span>
+                    RoomHub
+                </a>
+            </div>
+            <div class="flex items-center gap-4">
+                <a asp-action="Index" class="text-sm font-semibold px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 dark:text-white transition">Back to List</a>
+            </div>
         </div>
-        <div class="card-body">
-            <form asp-action="Create" method="post">
-                <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3"></div>
+    </header>
 
-                <div class="row">
-                    <!-- Left Column: Core Info -->
-                    <div class="col-md-6 mb-3">
-                        <label asp-for="Title" class="form-label fw-bold"></label>
-                        <input asp-for="Title" class="form-control" placeholder="e.g. Beautiful room with balcony" />
-                        <span asp-validation-for="Title" class="text-danger small"></span>
-                    </div>
-
-                    <div class="col-md-3 mb-3">
-                        <label asp-for="RoomNumber" class="form-label fw-bold"></label>
-                        <input asp-for="RoomNumber" class="form-control" />
-                        <span asp-validation-for="RoomNumber" class="text-danger small"></span>
-                    </div>
-
-                    <div class="col-md-3 mb-3">
-                        <label asp-for="FloorId" class="form-label fw-bold"></label>
-                        <select asp-for="FloorId" class="form-select">
-                            <option value="">-- Select Floor --</option>
-                            @if(Model.AvailableFloors != null)
-                            {
-                                foreach(var floor in Model.AvailableFloors)
-                                {
-                                    <option value="@floor.Id">@floor.Building.Name - Floor @floor.FloorNumber</option>
-                                }
-                            }
-                        </select>
-                        <span asp-validation-for="FloorId" class="text-danger small"></span>
-                    </div>
+    <!-- Main Content -->
+    <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-8">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 md:p-8">
+            <div class="flex items-center gap-3 mb-8 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div class="w-12 h-12 rounded-xl bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center text-primary">
+                    <span class="material-symbols-outlined text-3xl">add_home</span>
                 </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Create Room Post</h1>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">Fill in the details below to publish a new room.</p>
+                </div>
+            </div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label asp-for="RoomType" class="form-label fw-bold"></label>
-                        <select asp-for="RoomType" asp-items="Html.GetEnumSelectList<RoomType>()" class="form-select"></select>
-                        <span asp-validation-for="RoomType" class="text-danger small"></span>
-                    </div>
+            <form asp-action="Create" method="post" class="space-y-6">
+                <div asp-validation-summary="ModelOnly" class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400"></div>
+
+                <!-- Basic Details -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-700 pb-2">Basic Information</h3>
                     
-                    <div class="col-md-3 mb-3">
-                        <label asp-for="Status" class="form-label fw-bold"></label>
-                        <select asp-for="Status" asp-items="Html.GetEnumSelectList<RoomStatus>()" class="form-select"></select>
-                        <span asp-validation-for="Status" class="text-danger small"></span>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label asp-for="BasePrice" class="form-label fw-bold"></label>
-                        <div class="input-group">
-                            <input asp-for="BasePrice" type="number" step="0.01" class="form-control" />
-                            <span class="input-group-text">₫</span>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="md:col-span-2">
+                            <label asp-for="Title" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1"></label>
+                            <input asp-for="Title" class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition" placeholder="e.g. Beautiful room with balcony" />
+                            <span asp-validation-for="Title" class="text-xs text-red-500 mt-1 block"></span>
                         </div>
-                        <span asp-validation-for="BasePrice" class="text-danger small"></span>
-                    </div>
 
-                    <div class="col-md-4 mb-3">
-                        <label asp-for="SurfaceArea" class="form-label fw-bold"></label>
-                        <div class="input-group">
-                            <input asp-for="SurfaceArea" type="number" step="0.1" class="form-control" />
-                            <span class="input-group-text">m&sup2;</span>
+                        <div>
+                            <label asp-for="RoomNumber" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1"></label>
+                            <input asp-for="RoomNumber" class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition" />
+                            <span asp-validation-for="RoomNumber" class="text-xs text-red-500 mt-1 block"></span>
                         </div>
-                        <span asp-validation-for="SurfaceArea" class="text-danger small"></span>
-                    </div>
 
-                    <div class="col-md-4 mb-3">
-                        <label asp-for="MaxCapacity" class="form-label fw-bold"></label>
-                        <div class="input-group">
-                            <input asp-for="MaxCapacity" type="number" class="form-control" />
-                            <span class="input-group-text"><i class="bi bi-people"></i></span>
-                        </div>
-                        <span asp-validation-for="MaxCapacity" class="text-danger small"></span>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-12 mb-3">
-                        <label asp-for="Description" class="form-label fw-bold"></label>
-                        <textarea asp-for="Description" class="form-control" rows="4" placeholder="Describe the room details nicely..."></textarea>
-                        <span asp-validation-for="Description" class="text-danger small"></span>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-12 mb-4">
-                        <label class="form-label fw-bold text-primary mb-2">Amenities & Features</label>
-                        <div class="card bg-light border-0">
-                            <div class="card-body p-3">
-                                <div class="form-check form-switch custom-switch mb-3">
-                                    <input class="form-check-input" type="checkbox" asp-for="IsFurnished" id="IsFurnishedCheck" />
-                                    <label class="form-check-label fw-bold" for="IsFurnishedCheck">
-                                        Is Fully Furnished?
-                                    </label>
-                                </div>
-                                
-                                @if (Model.AvailableAmenities != null && Model.AvailableAmenities.Any())
+                        <div>
+                            <label asp-for="FloorId" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1"></label>
+                            <select asp-for="FloorId" class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition">
+                                <option value="">-- Select Floor --</option>
+                                @if(Model.AvailableFloors != null)
                                 {
-                                    <div class="row g-3">
-                                        @foreach (var amenity in Model.AvailableAmenities)
-                                        {
-                                            <div class="col-md-4 col-sm-6">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" name="SelectedAmenityIds" 
-                                                           value="@amenity.Id" id="amenity_@amenity.Id"
-                                                           @(Model.SelectedAmenityIds.Contains(amenity.Id) ? "checked" : "") />
-                                                    <label class="form-check-label" for="amenity_@amenity.Id">
-                                                        @if (!string.IsNullOrEmpty(amenity.IconUrl))
-                                                        {
-                                                            <i class="@amenity.IconUrl me-1 text-secondary"></i>
-                                                        }
-                                                        else
-                                                        {
-                                                            <i class="bi bi-check2-square me-1 text-secondary"></i>
-                                                        }
-                                                        @amenity.Name
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        }
-                                    </div>
+                                    foreach(var floor in Model.AvailableFloors)
+                                    {
+                                        <option value="@floor.Id">@floor.Building.Name - Floor @floor.FloorNumber</option>
+                                    }
                                 }
-                                else
+                            </select>
+                            <span asp-validation-for="FloorId" class="text-xs text-red-500 mt-1 block"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="RoomType" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1"></label>
+                            <select asp-for="RoomType" asp-items="Html.GetEnumSelectList<RoomType>()" class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition"></select>
+                            <span asp-validation-for="RoomType" class="text-xs text-red-500 mt-1 block"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="Status" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1"></label>
+                            <select asp-for="Status" asp-items="Html.GetEnumSelectList<RoomStatus>()" class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition"></select>
+                            <span asp-validation-for="Status" class="text-xs text-red-500 mt-1 block"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pricing & Dimensions -->
+                <div class="space-y-4 pt-4">
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-700 pb-2">Pricing & Dimensions</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label asp-for="BasePrice" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1"></label>
+                            <div class="relative">
+                                <input asp-for="BasePrice" type="number" step="0.01" class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 pl-4 pr-10 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition" />
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-500">
+                                    ₫
+                                </div>
+                            </div>
+                            <span asp-validation-for="BasePrice" class="text-xs text-red-500 mt-1 block"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="SurfaceArea" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1"></label>
+                            <div class="relative">
+                                <input asp-for="SurfaceArea" type="number" step="0.1" class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 pl-4 pr-10 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition" />
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-500">
+                                    m²
+                                </div>
+                            </div>
+                            <span asp-validation-for="SurfaceArea" class="text-xs text-red-500 mt-1 block"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="MaxCapacity" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1"></label>
+                            <div class="relative">
+                                <input asp-for="MaxCapacity" type="number" class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 pl-4 pr-10 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition" />
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-500">
+                                    <span class="material-symbols-outlined text-xl">group</span>
+                                </div>
+                            </div>
+                            <span asp-validation-for="MaxCapacity" class="text-xs text-red-500 mt-1 block"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="space-y-4 pt-4">
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-700 pb-2">Description</h3>
+                    <div>
+                        <textarea asp-for="Description" rows="4" class="w-full rounded-lg border-slate-300 dark:border-slate-700 dark:bg-slate-800 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition" placeholder="Describe the room details nicely..."></textarea>
+                        <span asp-validation-for="Description" class="text-xs text-red-500 mt-1 block"></span>
+                    </div>
+                </div>
+
+                <!-- Amenities -->
+                <div class="space-y-4 pt-4">
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-700 pb-2">Amenities & Features</h3>
+                    <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-5 border border-slate-100 dark:border-slate-700">
+                        <label class="flex items-center cursor-pointer mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
+                            <div class="relative">
+                                <input type="checkbox" asp-for="IsFurnished" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
+                            </div>
+                            <span class="ml-3 text-sm font-bold text-slate-800 dark:text-slate-200">Is Fully Furnished?</span>
+                        </label>
+
+                        @if (Model.AvailableAmenities != null && Model.AvailableAmenities.Any())
+                        {
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                @foreach (var amenity in Model.AvailableAmenities)
                                 {
-                                    <div class="text-muted small italic">No additional amenities available to select.</div>
+                                    <label class="flex items-center gap-3 cursor-pointer group">
+                                        <input type="checkbox" name="SelectedAmenityIds" value="@amenity.Id" id="amenity_@amenity.Id"
+                                               @(Model.SelectedAmenityIds.Contains(amenity.Id) ? "checked" : "") 
+                                               class="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary dark:border-slate-600 dark:bg-slate-700" />
+                                        <span class="text-sm text-slate-700 dark:text-slate-300 group-hover:text-primary transition flex items-center gap-2">
+                                            @if (!string.IsNullOrEmpty(amenity.IconUrl))
+                                            {
+                                                <i class="@amenity.IconUrl text-slate-400 group-hover:text-primary"></i>
+                                            }
+                                            else
+                                            {
+                                                <span class="material-symbols-outlined text-[18px] text-slate-400 group-hover:text-primary">check_box_outline_blank</span>
+                                            }
+                                            @amenity.Name
+                                        </span>
+                                    </label>
                                 }
                             </div>
-                        </div>
+                        }
+                        else
+                        {
+                            <div class="text-slate-500 text-sm italic">No additional amenities available to select.</div>
+                        }
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-end gap-2 mt-2">
-                    <a asp-action="Index" class="btn btn-outline-secondary px-4">Cancel</a>
-                    <button type="submit" class="btn btn-primary px-4">
-                        Publish Post <i class="bi bi-send ms-1"></i>
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-slate-100 dark:border-slate-800">
+                    <a asp-action="Index" class="px-6 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition">Cancel</a>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg bg-primary text-white font-bold hover:opacity-90 transition flex items-center gap-2 shadow-sm">
+                        Publish Post <span class="material-symbols-outlined text-[20px]">send</span>
                     </button>
                 </div>
             </form>
         </div>
-    </div>
-</div>
+    </main>
 
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}
+    @section Scripts {
+        @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    }
+</body>
+</html>
