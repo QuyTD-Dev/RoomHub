@@ -17,7 +17,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 // bật Session để lưu OTP
 builder.Services.AddSession();
 builder.Services.AddMemoryCache();
-=======
+
 builder.Services.AddSignalR();
 
 
