@@ -4,6 +4,7 @@ using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260308152453_AddRoomLandlordFields")]
+    partial class AddRoomLandlordFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -202,30 +205,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = "test-user-id-123",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "6b655961-ff6c-4479-99cd-0cf667fb9a94",
-                            CreatedAt = new DateTime(2026, 3, 9, 9, 58, 52, 101, DateTimeKind.Utc).AddTicks(9532),
-                            Email = "owner@roomhub.com",
-                            EmailConfirmed = true,
-                            FullName = "Chủ Trọ Test",
-                            IsBanned = false,
-                            IsDeleted = false,
-                            IsVerified = false,
-                            LockoutEnabled = false,
-                            NormalizedEmail = "OWNER@ROOMHUB.COM",
-                            NormalizedUserName = "OWNER_TEST",
-                            PasswordHash = "AQAAAAEAACcQAAAAE...",
-                            PhoneNumber = "0123456789",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "528cbd7e-b24c-42ff-84eb-0ed9d3c34fd8",
-                            TwoFactorEnabled = false,
-                            UserName = "owner_test"
-                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.AuditLog", b =>
@@ -366,20 +345,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_Buildings_Location");
 
                     b.ToTable("Buildings", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Address = "123 Đường Test",
-                            City = "Hồ Chí Minh",
-                            CreatedAt = new DateTime(2026, 3, 9, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            District = "Quận 1",
-                            IsDeleted = false,
-                            Name = "Chung cư mini RoomHub",
-                            OwnerId = "test-user-id-123",
-                            Ward = "Phường Bến Nghé"
-                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.Contract", b =>
@@ -535,17 +500,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("BuildingId");
 
                     b.ToTable("Floors", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            BuildingId = 1,
-                            CreatedAt = new DateTime(2026, 3, 9, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Tầng 1 (Trệt)",
-                            FloorNumber = 1,
-                            IsDeleted = false
-                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.Invoice", b =>
@@ -916,6 +870,11 @@ namespace Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<decimal>("BasePrice")
                         .HasColumnType("decimal(18,2)");
 
@@ -992,25 +951,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_Rooms_Status_Price");
 
                     b.ToTable("Rooms", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            BasePrice = 3500000m,
-                            CreatedAt = new DateTime(2026, 3, 9, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Phòng mới xây, dọn vào ở ngay.",
-                            FloorId = 1,
-                            IsDeleted = false,
-                            IsFurnished = true,
-                            LandlordId = "test-user-id-123",
-                            MaxCapacity = 2,
-                            RoomNumber = "101",
-                            RoomType = "Other",
-                            Status = "Available",
-                            SurfaceArea = 25.5m,
-                            Title = "Phòng trọ cao cấp cửa sổ thoáng mát"
-                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.RoomAmenity", b =>
@@ -1026,18 +966,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("AmenityId");
 
                     b.ToTable("RoomAmenities", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            RoomId = 1,
-                            AmenityId = 1
-                        },
-                        new
-                        {
-                            RoomId = 1,
-                            AmenityId = 2
-                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.SearchHistory", b =>
@@ -1384,13 +1312,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("AspNetUserRoles", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            UserId = "test-user-id-123",
-                            RoleId = "owner-role-id"
-                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>

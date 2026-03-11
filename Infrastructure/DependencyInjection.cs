@@ -46,6 +46,9 @@ namespace Infrastructure
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
+            // Application Services & Repositories
+            services.AddScoped<Application.Interfaces.Repositories.IRoomPostRepository, Infrastructure.Repositories.RoomPostRepository>();
+            services.AddScoped<Application.Interfaces.Services.IRoomPostService, Application.Services.RoomPostService>();
 
             // External OAuth Providers
             services.AddAuthentication()
