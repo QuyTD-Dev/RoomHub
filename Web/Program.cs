@@ -9,6 +9,7 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 
+
 // Application Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -16,6 +17,9 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 // bật Session để lưu OTP
 builder.Services.AddSession();
 builder.Services.AddMemoryCache();
+=======
+builder.Services.AddSignalR();
+
 
 var app = builder.Build();
 
@@ -41,4 +45,10 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+
 app.Run();
+
+app.MapHub<Web.Hubs.ChatHub>("/chathub");
+
+app.Run();
+
