@@ -1,6 +1,9 @@
+
+
 ﻿using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
 using Application.Services;
+
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Infrastructure.Repositories;
@@ -43,8 +46,23 @@ namespace Infrastructure
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
+
+            // External OAuth Providers
+            services.AddAuthentication()
+                .AddGoogle(options =>
+                {
+                    options.ClientId = configuration["Authentication:Google:ClientId"]!;
+                    options.ClientSecret = configuration["Authentication:Google:ClientSecret"]!;
+                })
+                .AddFacebook(options =>
+                {
+                    options.AppId = configuration["Authentication:Facebook:AppId"]!;
+                    options.AppSecret = configuration["Authentication:Facebook:AppSecret"]!;
+                });
+
             services.AddScoped<IMessageRepository, MessageRepository>();
             services.AddScoped<IMessageService, MessageService>();
+
 
             return services;
         }
