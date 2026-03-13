@@ -1,38 +1,7 @@
 @using Domain.Enums
 @model Application.DTOs.RoomPosts.EditRoomViewModel
 
-@{
-    Layout = null;
-}
-<!DOCTYPE html>
-<html class="light" lang="en">
-<head>
-    <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Edit Room Post - RoomHub</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
-    <script src="~/js/RoomPosts/edit.js"></script>
-    <link rel="stylesheet" href="~/css/RoomPosts/edit.css" />
-</head>
-<body class="bg-[#f4f4f4] dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
-    <!-- Header -->
-    <header class="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div class="max-w-[1440px] mx-auto px-4 h-16 flex items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-                <a asp-action="Index" class="flex items-center gap-3 text-primary text-2xl font-bold tracking-tight hover:opacity-90 transition">
-                    <span class="material-symbols-outlined text-3xl">real_estate_agent</span>
-                    RoomHub
-                </a>
-            </div>
-            <div class="flex items-center gap-4">
-                <a asp-action="Index" class="text-sm font-semibold px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 dark:text-white transition">Back to List</a>
-            </div>
-        </div>
-    </header>
 
-    <!-- Main Content -->
     <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-8">
         <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 md:p-8">
             <div class="flex items-center gap-3 mb-8 pb-4 border-b border-slate-100 dark:border-slate-800">
@@ -201,5 +170,4 @@
     @section Scripts {
         @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     }
-</body>
-</html>
+

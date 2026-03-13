@@ -1,6 +1,7 @@
 using Application.DTOs.Auth;
 using Application.Interfaces.Services;
 using Domain.Entities;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Web.Models;
@@ -44,7 +45,7 @@ namespace Web.Controllers
 
             if (result.Succeeded)
             {
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("Index", "RoomPosts");
             }
 
             if (result.IsLockedOut)
@@ -332,6 +333,29 @@ namespace Web.Controllers
             }
 
             return RedirectToAction("Index", "Home");
+        }
+        [HttpPost]
+        public async Task<IActionResult> Logout()
+        {
+            // 1. Thực hiện xóa phiên đăng nhập (Xóa Cookie xác thực)
+
+            // CÁCH 1: Nếu bạn dùng chuẩn ASP.NET Core Identity (FE-01)
+            if (_signInManager != null)
+            {
+                await _signInManager.SignOutAsync();
+            }
+            else
+            {
+                // CÁCH 2: Nếu bạn code Cookie Authentication thủ công
+                await HttpContext.SignOutAsync();
+                // Hoặc: await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            }
+
+            // Xóa thêm Session nếu dự án của bạn có lưu trữ giỏ hàng/dữ liệu tạm trong Session
+            // HttpContext.Session.Clear();
+
+            // 2. Chuyển hướng người dùng về lại trang chủ (Controller: RoomPosts, Action: Index)
+            return RedirectToAction("Index", "RoomPosts");
         }
     }
 }
