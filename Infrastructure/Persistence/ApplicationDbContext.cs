@@ -63,6 +63,7 @@ namespace Infrastructure.Persistence
         // System
         public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
+        public DbSet<FavoriteRoom> FavoriteRooms { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

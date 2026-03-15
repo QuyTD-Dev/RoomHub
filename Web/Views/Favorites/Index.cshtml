@@ -1,0 +1,54 @@
+﻿@model IEnumerable<Application.DTOs.RoomPosts.RoomListViewModel>
+@{
+    ViewData["Title"] = "Phòng trọ đã lưu";
+}
+
+<main class="max-w-7xl mx-auto px-4 py-6">
+    <div class="flex items-center gap-2 mb-6">
+        <span class="material-symbols-outlined text-red-500 text-3xl" style="font-variation-settings: 'FILL' 1;">favorite</span>
+        <h1 class="text-2xl font-bold">Danh sách phòng yêu thích</h1>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-20 bg-white rounded-xl shadow-sm border border-slate-200">
+            <span class="material-symbols-outlined text-6xl text-slate-300 mb-4">heart_broken</span>
+            <h2 class="text-xl font-medium text-slate-600">Bạn chưa lưu phòng nào!</h2>
+            <p class="text-slate-500 mt-2">Hãy quay lại trang chủ và khám phá những căn phòng tuyệt vời nhé.</p>
+            <a asp-controller="RoomPosts" asp-action="Index" class="inline-block mt-6 px-6 py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800">
+                Khám phá ngay
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            @foreach (var room in Model)
+            {
+                <div class="relative bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden group hover:shadow-md transition-shadow cursor-pointer">
+                    
+                    <div class="h-48 bg-slate-200 w-full relative overflow-hidden">
+                        
+                        <img alt="@room.Title"
+                             class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                             src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIyzXG4Y1l8UHabQUlbLLXu93616OZ2rWZdqfHk7YoN9koc7TX0kCZ2eSt0qfkD4UwHBBmwWH8XeJ2Kec8weBQ7f9rb-IRzo3NstQ9rP0YtaTy1t37SQod0n354EM5LOQV6-u4YddEjWcow5DzBU5oiUvSdB6QK-WcDauq_n3jOy3R41-yBMXB_vRiy--1vTdA12NsxepsZj1r2VC0bBxKIs3ROL5V8_1FxU2EzCuyRJGZ2SoFQjoduY4NhOvKhX3djUfBS7Oo6JY" />
+
+                        <button class="btn-toggle-favorite absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full shadow-sm hover:scale-110 transition-transform z-10"
+                                data-roomid="@room.Id">
+                            <span class="favorite-icon material-symbols-outlined @(room.IsFavorited ? "text-red-500" : "text-slate-400")"
+                                  style="@(room.IsFavorited ? "font-variation-settings: 'FILL' 1;" : "font-variation-settings: 'FILL' 0;")">
+                                favorite
+                            </span>
+                        </button>
+                    </div>
+                    
+                    <div class="p-4">
+                        <h3 class="font-semibold text-lg truncate">@room.Title</h3>
+                        <p class="text-red-600 font-bold mt-1">@room.BasePrice.ToString("N0") VNĐ</p>
+                        <p class="text-sm text-slate-500 mt-2">@room.Address</p>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</main>

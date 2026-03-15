@@ -39,9 +39,12 @@
 
             <div class="flex items-center gap-2 lg:gap-4">
                 <div class="flex items-center gap-1 md:gap-3 px-2 border-r border-slate-200">
-                    <button class="p-2 text-slate-700 hover:text-primary transition">
-                        <span class="material-symbols-outlined text-2xl">favorite</span>
-                    </button>
+                    @if (User.Identity.IsAuthenticated && User.IsInRole("Tenant"))
+                    {
+                        <a asp-controller="Favorites" asp-action="Index" class="p-2 text-slate-700 hover:text-primary transition" title="Phòng đã lưu">
+                            <span class="material-symbols-outlined text-2xl">favorite</span>
+                        </a>
+                    }
                     <button class="p-2 text-slate-700 hover:text-primary transition">
                         <span class="material-symbols-outlined text-2xl">chat</span>
                     </button>
@@ -211,16 +214,22 @@
             <span class="material-symbols-outlined">add_circle</span>
             <span class="text-[10px] font-medium">Post</span>
         </button>
-        <button class="flex flex-col items-center gap-0.5 text-slate-400">
-            <span class="material-symbols-outlined">favorite</span>
-            <span class="text-[10px] font-medium">Saved</span>
-        </button>
+        @if (User.Identity.IsAuthenticated && User.IsInRole("Tenant"))
+        {
+            <a asp-controller="Favorites" asp-action="Index" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-primary transition-colors">
+                <span class="material-symbols-outlined">favorite</span>
+                <span class="text-[10px] font-medium">Saved</span>
+            </a>
+        }
         <button class="flex flex-col items-center gap-0.5 text-slate-400">
             <span class="material-symbols-outlined">account_circle</span>
             <span class="text-[10px] font-medium">Profile</span>
         </button>
     </div>
-
+    <form id="antiforgery-form" class="hidden">
+        @Html.AntiForgeryToken()
+    </form>
+    <script src="~/js/favorite.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

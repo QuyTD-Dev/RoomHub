@@ -4,8 +4,7 @@ namespace Application.Interfaces.Services
 {
     public interface IRoomPostService
     {
-        Task<IEnumerable<RoomListViewModel>> GetMyRoomsAsync(string landlordId);
-
+        Task<IEnumerable<RoomListViewModel>> GetMyRoomsAsync(string? currentUserId);
         // GET lookup data combined with viewmodels
         Task<CreateRoomViewModel> GetCreateViewModelAsync(string landlordId);
         Task<EditRoomViewModel> GetEditViewModelAsync(int id, string landlordId);

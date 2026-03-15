@@ -65,8 +65,8 @@ namespace Infrastructure
 
             services.AddScoped<IMessageRepository, MessageRepository>();
             services.AddScoped<IMessageService, MessageService>();
-
-
+            services.AddScoped<IFavoriteRoomRepository, FavoriteRoomRepository>();
+            services.AddScoped<IFavoriteRoomService, FavoriteRoomService>();
             return services;
         }
     }

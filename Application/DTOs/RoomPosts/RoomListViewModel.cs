@@ -15,5 +15,6 @@ namespace Application.DTOs.RoomPosts
         public string RoomNumber { get; set; } = null!;
         public RoomType RoomType { get; set; }
         public int AmenityCount { get; set; }
+        public bool IsFavorited { get; set; }
     }
 }

@@ -23,9 +23,5 @@
 	 <ItemGroup>
 		 <ProjectReference Include="..\Application\Application.csproj" />
 	 </ItemGroup>
-	
-	 <ItemGroup>
-	   <Folder Include="Repositories\" />
-	 </ItemGroup>
 
 </Project>

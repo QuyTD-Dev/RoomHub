@@ -8,15 +8,32 @@ namespace Application.Services
     public class RoomPostService : IRoomPostService
     {
         private readonly IRoomPostRepository _repository;
+        private readonly IFavoriteRoomRepository _favoriteRoomRepo;
 
-        public RoomPostService(IRoomPostRepository repository)
+        public RoomPostService(IRoomPostRepository repository, IFavoriteRoomRepository favoriteRoomRepo)
         {
             _repository = repository;
+            _favoriteRoomRepo = favoriteRoomRepo;
         }
 
-        public async Task<IEnumerable<RoomListViewModel>> GetMyRoomsAsync(string landlordId)
+        public async Task<IEnumerable<RoomListViewModel>> GetMyRoomsAsync(string? currentUserId)
         {
-            var rooms = await _repository.GetByLandlordIdAsync(landlordId);
+            // LƯU Ý NGHIỆP VỤ: Nếu đây là Homepage dùng chung, bạn cần thay _repository.GetByLandlordIdAsync
+            // bằng hàm lấy toàn bộ phòng (VD: await _repository.GetAllActiveRoomsAsync();)
+            // Tạm thời mình giữ nguyên logic lấy theo ID của bạn, nhưng hãy điều chỉnh Repository nếu cần hiển thị tất cả.
+            var rooms = await _repository.GetByLandlordIdAsync(currentUserId ?? "");
+
+            // 1. Khởi tạo HashSet rỗng (Độ phức tạp tra cứu O(1))
+            var favoriteRoomIds = new HashSet<int>();
+
+            // 2. Nếu User đã đăng nhập, lấy danh sách ID phòng họ đã thích
+            if (!string.IsNullOrEmpty(currentUserId))
+            {
+                var ids = await _favoriteRoomRepo.GetUserFavoriteRoomIdsAsync(currentUserId);
+                favoriteRoomIds = new HashSet<int>(ids);
+            }
+
+            // 3. Map dữ liệu và kiểm tra IsFavorited cực kỳ tối ưu
             return rooms.Select(r => new RoomListViewModel
             {
                 Id = r.Id,
@@ -28,7 +45,10 @@ namespace Application.Services
                 CreatedAt = r.CreatedAt,
                 RoomNumber = r.RoomNumber,
                 RoomType = r.RoomType,
-                AmenityCount = r.RoomAmenities.Count
+                AmenityCount = r.RoomAmenities?.Count ?? 0, // Thêm ?. để tránh lỗi Null
+
+                // LOGIC YÊU THÍCH: Kiểm tra ID phòng có nằm trong HashSet không
+                IsFavorited = favoriteRoomIds.Contains(r.Id)
             });
         }
 

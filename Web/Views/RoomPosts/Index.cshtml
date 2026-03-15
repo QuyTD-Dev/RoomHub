@@ -114,6 +114,17 @@
                             <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm flex flex-col md:flex-row overflow-hidden group cursor-pointer hover:shadow-md transition border border-slate-100">
                                 <div class="md:w-72 h-48 md:h-auto overflow-hidden relative">
                                     <img alt="@item.Title" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIyzXG4Y1l8UHabQUlbLLXu93616OZ2rWZdqfHk7YoN9koc7TX0kCZ2eSt0qfkD4UwHBBmwWH8XeJ2Kec8weBQ7f9rb-IRzo3NstQ9rP0YtaTy1t37SQod0n354EM5LOQV6-u4YddEjWcow5DzBU5oiUvSdB6QK-WcDauq_n3jOy3R41-yBMXB_vRiy--1vTdA12NsxepsZj1r2VC0bBxKIs3ROL5V8_1FxU2EzCuyRJGZ2SoFQjoduY4NhOvKhX3djUfBS7Oo6JY" />
+                                    @if (User.Identity.IsAuthenticated && User.IsInRole("Tenant"))
+            {
+                <button class="btn-toggle-favorite absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm rounded-full shadow hover:scale-110 transition-transform z-10"
+                        data-roomid="@item.Id"
+                        title="@(item.IsFavorited ? "Bỏ lưu" : "Lưu bài đăng")">
+                    <span class="favorite-icon material-symbols-outlined @(item.IsFavorited ? "text-red-500" : "text-slate-400")" 
+                          style="@(item.IsFavorited ? "font-variation-settings: 'FILL' 1;" : "font-variation-settings: 'FILL' 0;")">
+                        favorite
+                    </span>
+                </button>
+            }
                                     @{
                                         var badgeClass = item.Status switch
                                         {
