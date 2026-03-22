@@ -73,6 +73,8 @@ namespace Infrastructure
             services.AddScoped<IReviewViolationRepository, ReviewViolationRepository>();
             services.AddScoped<IReviewService, ReviewService>();
 
+            services.AddScoped<IBuildingRepository, BuildingRepository>();
+
             services.AddHttpClient<IGeminiModerationService, GeminiModerationService>();
 
             return services;
