@@ -1,5 +1,12 @@
-﻿using Domain.Entities;
+
+
+﻿using Application.Interfaces.Repositories;
+using Application.Interfaces.Services;
+using Application.Services;
+
+using Domain.Entities;
 using Infrastructure.Persistence;
+using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -38,6 +45,35 @@ namespace Infrastructure
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+
+            // Application Services & Repositories
+            services.AddScoped<Application.Interfaces.Repositories.IRoomPostRepository, Infrastructure.Repositories.RoomPostRepository>();
+            services.AddScoped<Application.Interfaces.Services.IRoomPostService, Application.Services.RoomPostService>();
+            services.AddScoped<Application.Interfaces.Services.ICloudinaryService, Infrastructure.Services.CloudinaryService>();
+
+            services.AddScoped<Application.Interfaces.Repositories.IFavoriteRoomRepository, Infrastructure.Repositories.FavoriteRoomRepository>();
+            services.AddScoped<Application.Interfaces.Services.IFavoriteRoomService, Application.Services.FavoriteRoomService>();
+            // External OAuth Providers
+            services.AddAuthentication()
+                .AddGoogle(options =>
+                {
+                    options.ClientId = configuration["Authentication:Google:ClientId"]!;
+                    options.ClientSecret = configuration["Authentication:Google:ClientSecret"]!;
+                })
+                .AddFacebook(options =>
+                {
+                    options.AppId = configuration["Authentication:Facebook:AppId"]!;
+                    options.AppSecret = configuration["Authentication:Facebook:AppSecret"]!;
+                });
+
+            services.AddScoped<IMessageRepository, MessageRepository>();
+            services.AddScoped<IMessageService, MessageService>();
+
+            services.AddScoped<IReviewRepository, ReviewRepository>();
+            services.AddScoped<IReviewViolationRepository, ReviewViolationRepository>();
+            services.AddScoped<IReviewService, ReviewService>();
+
+            services.AddHttpClient<IGeminiModerationService, GeminiModerationService>();
 
             return services;
         }

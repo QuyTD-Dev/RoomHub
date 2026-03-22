@@ -170,6 +170,9 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<DateTime?>("ReviewBlockedUntil")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("RoleSpecificData")
                         .HasColumnType("nvarchar(max)");
 
@@ -202,6 +205,30 @@ namespace Infrastructure.Persistence.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "test-user-id-123",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "eed97ed5-8f4e-46b0-b75d-b2c275a47e68",
+                            CreatedAt = new DateTime(2026, 3, 22, 8, 50, 12, 600, DateTimeKind.Utc).AddTicks(5040),
+                            Email = "owner@roomhub.com",
+                            EmailConfirmed = true,
+                            FullName = "Chủ Trọ Test",
+                            IsBanned = false,
+                            IsDeleted = false,
+                            IsVerified = false,
+                            LockoutEnabled = false,
+                            NormalizedEmail = "OWNER@ROOMHUB.COM",
+                            NormalizedUserName = "OWNER_TEST",
+                            PasswordHash = "AQAAAAEAACcQAAAAE...",
+                            PhoneNumber = "0123456789",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "0fdafeca-6e68-4bd2-93fc-6bba907bb1f2",
+                            TwoFactorEnabled = false,
+                            UserName = "owner_test"
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.AuditLog", b =>
@@ -342,6 +369,20 @@ namespace Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_Buildings_Location");
 
                     b.ToTable("Buildings", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Address = "123 Đường Test",
+                            City = "Hồ Chí Minh",
+                            CreatedAt = new DateTime(2026, 3, 9, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            District = "Quận 1",
+                            IsDeleted = false,
+                            Name = "Chung cư mini RoomHub",
+                            OwnerId = "test-user-id-123",
+                            Ward = "Phường Bến Nghé"
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.Contract", b =>
@@ -497,6 +538,17 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("BuildingId");
 
                     b.ToTable("Floors", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            BuildingId = 1,
+                            CreatedAt = new DateTime(2026, 3, 9, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Tầng 1 (Trệt)",
+                            FloorNumber = 1,
+                            IsDeleted = false
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.Invoice", b =>
@@ -830,6 +882,9 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<string>("OwnerId")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<int?>("ParentReviewId")
+                        .HasColumnType("int");
+
                     b.Property<byte?>("Rating")
                         .HasColumnType("tinyint");
 
@@ -848,6 +903,9 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("OwnerId")
                         .HasDatabaseName("IX_Reviews_OwnerId");
 
+                    b.HasIndex("ParentReviewId")
+                        .HasDatabaseName("IX_Reviews_ParentReviewId");
+
                     b.HasIndex("RoomId")
                         .HasDatabaseName("IX_Reviews_RoomId");
 
@@ -857,6 +915,35 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("Reviews", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.ReviewViolation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ReviewViolations");
                 });
 
             modelBuilder.Entity("Domain.Entities.Room", b =>
@@ -892,13 +979,14 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<string>("LandlordId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<int>("MaxCapacity")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(2);
-
-                    b.Property<string>("Photos")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RoomNumber")
                         .IsRequired()
@@ -916,10 +1004,17 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<decimal?>("SurfaceArea")
                         .HasColumnType("decimal(6,2)");
 
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("LandlordId");
 
                     b.HasIndex("RoomType")
                         .HasDatabaseName("IX_Rooms_RoomType");
@@ -932,6 +1027,25 @@ namespace Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_Rooms_Status_Price");
 
                     b.ToTable("Rooms", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            BasePrice = 3500000m,
+                            CreatedAt = new DateTime(2026, 3, 9, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Phòng mới xây, dọn vào ở ngay.",
+                            FloorId = 1,
+                            IsDeleted = false,
+                            IsFurnished = true,
+                            LandlordId = "test-user-id-123",
+                            MaxCapacity = 2,
+                            RoomNumber = "101",
+                            RoomType = "Other",
+                            Status = "Available",
+                            SurfaceArea = 25.5m,
+                            Title = "Phòng trọ cao cấp cửa sổ thoáng mát"
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.RoomAmenity", b =>
@@ -947,6 +1061,55 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("AmenityId");
 
                     b.ToTable("RoomAmenities", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            RoomId = 1,
+                            AmenityId = 1
+                        },
+                        new
+                        {
+                            RoomId = 1,
+                            AmenityId = 2
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.RoomPhoto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsMain")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("RoomId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoomId");
+
+                    b.ToTable("RoomPhotos", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.SearchHistory", b =>
@@ -1293,6 +1456,13 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("AspNetUserRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            UserId = "test-user-id-123",
+                            RoleId = "owner-role-id"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -1312,6 +1482,24 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("RoomHub.Domain.Entities.FavoriteRoom", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("RoomId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("UserId", "RoomId");
+
+                    b.HasIndex("RoomId");
+
+                    b.ToTable("FavoriteRooms", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.AuditLog", b =>
@@ -1524,6 +1712,11 @@ namespace Infrastructure.Persistence.Migrations
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("Domain.Entities.Review", "ParentReview")
+                        .WithMany("Replies")
+                        .HasForeignKey("ParentReviewId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Domain.Entities.Room", "Room")
                         .WithMany("Reviews")
                         .HasForeignKey("RoomId")
@@ -1542,11 +1735,24 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.Navigation("Owner");
 
+                    b.Navigation("ParentReview");
+
                     b.Navigation("Room");
 
                     b.Navigation("Service");
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ReviewViolation", b =>
+                {
+                    b.HasOne("Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Domain.Entities.Room", b =>
@@ -1557,7 +1763,15 @@ namespace Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Domain.Entities.ApplicationUser", "Landlord")
+                        .WithMany("OwnedRooms")
+                        .HasForeignKey("LandlordId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Floor");
+
+                    b.Navigation("Landlord");
                 });
 
             modelBuilder.Entity("Domain.Entities.RoomAmenity", b =>
@@ -1575,6 +1789,17 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Amenity");
+
+                    b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("Domain.Entities.RoomPhoto", b =>
+                {
+                    b.HasOne("Domain.Entities.Room", "Room")
+                        .WithMany("RoomPhotos")
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Room");
                 });
@@ -1689,6 +1914,25 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RoomHub.Domain.Entities.FavoriteRoom", b =>
+                {
+                    b.HasOne("Domain.Entities.Room", "Room")
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Room");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Domain.Entities.Amenity", b =>
                 {
                     b.Navigation("RoomAmenities");
@@ -1707,6 +1951,8 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("MaintenanceTickets");
 
                     b.Navigation("Notifications");
+
+                    b.Navigation("OwnedRooms");
 
                     b.Navigation("OwnerContracts");
 
@@ -1753,6 +1999,11 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Payments");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Review", b =>
+                {
+                    b.Navigation("Replies");
+                });
+
             modelBuilder.Entity("Domain.Entities.Room", b =>
                 {
                     b.Navigation("BookingHistories");
@@ -1768,6 +2019,8 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("Reviews");
 
                     b.Navigation("RoomAmenities");
+
+                    b.Navigation("RoomPhotos");
 
                     b.Navigation("SearchHistories");
                 });
