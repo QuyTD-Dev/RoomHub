@@ -6,23 +6,36 @@ using System.Security.Claims;
 
 namespace Web.Controllers
 {
-    //[Authorize(Roles = "PropertyOwner")]
+    [Authorize(Roles = "PropertyOwner")]
     public class RoomPostsController : Controller
     {
         private readonly IRoomPostService _roomPostService;
+        private readonly IReviewService _reviewService;
 
-        public RoomPostsController(IRoomPostService roomPostService)
+        public RoomPostsController(IRoomPostService roomPostService, IReviewService reviewService)
         {
             _roomPostService = roomPostService;
+            _reviewService = reviewService;
         }
 
         private string GetUserId()
         {
-            //return User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new UnauthorizedAccessException();
-            return "u-owner-001"; // Khớp với Landlord số 1 trong DB (có 11 phòng)
+            return User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new UnauthorizedAccessException();
+            //return "test-user-id-123";
         }
 
-        public async Task<IActionResult> Index()
+        [AllowAnonymous]
+        public async Task<IActionResult> Index(string? q, string? province, Domain.Enums.RoomType? roomType)
+        {
+            string? currentUserId = User.Identity?.IsAuthenticated == true
+                ? User.FindFirstValue(ClaimTypes.NameIdentifier)
+                : null;
+
+            var rooms = await _roomPostService.GetAllRoomsAsync(currentUserId);
+            return View(rooms);
+        }
+
+        public async Task<IActionResult> MyPosts()
         {
             var userId = GetUserId();
             var rooms = await _roomPostService.GetMyRoomsAsync(userId);
@@ -30,17 +43,31 @@ namespace Web.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> Details(int id)
         {
             try
             {
                 var viewModel = await _roomPostService.GetRoomDetailsAsync(id);
+                var reviews = await _reviewService.GetRootReviewsByRoomAsync(id);
+                viewModel.Reviews = reviews.ToList();
                 return View(viewModel);
             }
             catch (KeyNotFoundException)
             {
                 return NotFound();
             }
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> SearchSuggestions(string q, string? province)
+        {
+            if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
+                return Json(new List<object>());
+
+            var suggestions = await _roomPostService.GetSuggestionsAsync(q.Trim(), province, 6);
+            return Json(suggestions);
         }
 
         [HttpGet]
@@ -57,6 +84,11 @@ namespace Web.Controllers
         {
             var userId = GetUserId();
             
+            if (model.IsNewBuilding)
+            {
+                ModelState.Remove(nameof(model.FloorId));
+            }
+
             if (!ModelState.IsValid)
             {
                 var viewModel = await _roomPostService.GetCreateViewModelAsync(userId);

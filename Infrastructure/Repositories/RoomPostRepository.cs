@@ -14,12 +14,28 @@ namespace Infrastructure.Repositories
             _context = context;
         }
 
+        public async Task<IEnumerable<Room>> GetAllActiveAsync()
+        {
+            return await _context.Rooms.AsNoTracking()  // Tăng tốc độ đọc dữ liệu
+        .AsSplitQuery()  // Tách truy vấn, chống giật lag và TimeOut
+                .Include(r => r.Floor)
+                    .ThenInclude(f => f.Building)
+                .Include(r => r.RoomAmenities)
+                    .ThenInclude(ra => ra.Amenity)
+                .Include(r => r.RoomPhotos)
+                .Where(r => !r.IsDeleted && r.Status == Domain.Enums.RoomStatus.Active)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<Room>> GetByLandlordIdAsync(string landlordId)
         {
             return await _context.Rooms
                 .Include(r => r.Floor)
                     .ThenInclude(f => f.Building)
                 .Include(r => r.RoomAmenities)
+                    .ThenInclude(ra => ra.Amenity)
+                .Include(r => r.RoomPhotos)
                 .Where(r => r.LandlordId == landlordId && !r.IsDeleted)
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
@@ -33,6 +49,7 @@ namespace Infrastructure.Repositories
                 .Include(r => r.Landlord)
                 .Include(r => r.RoomAmenities)
                     .ThenInclude(ra => ra.Amenity)
+                .Include(r => r.RoomPhotos)
                 .Include(r => r.Deposits)
                 .FirstOrDefaultAsync(r => r.Id == id && !r.IsDeleted);
         }
@@ -70,30 +87,74 @@ namespace Infrastructure.Repositories
         }
 
         public async Task<IEnumerable<Room>> GetAvailableRoomsAsync()
-        {
-            return await _context.Rooms
-                .Include(r => r.Floor)
-                    .ThenInclude(f => f.Building)
-                .Include(r => r.RoomAmenities)
-                    .ThenInclude(ra => ra.Amenity)
-                .Include(r => r.Reviews)
-                .Where(r => !r.IsDeleted)
-                .OrderByDescending(r => r.CreatedAt)
-                .ToListAsync();
-        }
+{
+    return await _context.Rooms
+        .Include(r => r.Floor)
+            .ThenInclude(f => f.Building)
+        .Include(r => r.RoomAmenities)
+            .ThenInclude(ra => ra.Amenity)
+        .Include(r => r.RoomPhotos)
+        .Include(r => r.Reviews)
+        .Where(r => !r.IsDeleted && r.Status == Domain.Enums.RoomStatus.Active)
+        .OrderByDescending(r => r.CreatedAt)
+        .ToListAsync();
+}
 
-        public async Task<Room?> GetRoomDetailsByIdAsync(int id)
-        {
-            return await _context.Rooms
-                .Include(r => r.Floor)
-                    .ThenInclude(f => f.Building)
-                .Include(r => r.Landlord)
-                .Include(r => r.RoomAmenities)
-                    .ThenInclude(ra => ra.Amenity)
-                .Include(r => r.Deposits)
-                .Include(r => r.Reviews)
-                    .ThenInclude(rv => rv.Tenant)
-                .FirstOrDefaultAsync(r => r.Id == id && !r.IsDeleted);
-        }
+public async Task<Room?> GetRoomDetailsByIdAsync(int id)
+{
+    return await _context.Rooms
+        .Include(r => r.Floor)
+            .ThenInclude(f => f.Building)
+        .Include(r => r.Landlord)
+        .Include(r => r.RoomAmenities)
+            .ThenInclude(ra => ra.Amenity)
+        .Include(r => r.Deposits)
+        .Include(r => r.Reviews)
+            .ThenInclude(rv => rv.Tenant)
+        .FirstOrDefaultAsync(r => r.Id == id && !r.IsDeleted);
+}
+
+/// <summary>
+/// Tìm kiếm phòng
+/// </summary>
+public async Task<IEnumerable<Room>> SearchAsync(string? keyword, string? province, Domain.Enums.RoomType? roomType = null)
+{
+    var query = _context.Rooms
+        .Include(r => r.Floor)
+            .ThenInclude(f => f.Building)
+        .Include(r => r.RoomAmenities)
+            .ThenInclude(ra => ra.Amenity)
+        .Include(r => r.RoomPhotos)
+        .Where(r => !r.IsDeleted && r.Status == Domain.Enums.RoomStatus.Active)
+        .AsQueryable();
+
+    if (!string.IsNullOrWhiteSpace(keyword))
+    {
+        query = query.Where(r =>
+            EF.Functions.Collate(r.Title, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword) ||
+            (r.Description != null && EF.Functions.Collate(r.Description, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword)) ||
+            EF.Functions.Collate(r.Floor.Building.Name, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword) ||
+            EF.Functions.Collate(r.Floor.Building.Address, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword)
+        );
     }
+
+    if (!string.IsNullOrWhiteSpace(province))
+    {
+        query = query.Where(r =>
+            (r.Floor.Building.Province != null &&
+             EF.Functions.Collate(r.Floor.Building.Province, "SQL_Latin1_General_CP1_CI_AI").Contains(province)) ||
+            EF.Functions.Collate(r.Floor.Building.City, "SQL_Latin1_General_CP1_CI_AI").Contains(province)
+        );
+    }
+
+    if (roomType.HasValue)
+    {
+        query = query.Where(r => r.RoomType == roomType.Value);
+    }
+
+    return await query
+        .OrderByDescending(r => r.CreatedAt)
+        .ToListAsync();
+}
+
 }
