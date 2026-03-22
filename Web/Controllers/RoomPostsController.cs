@@ -27,11 +27,11 @@ namespace Web.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Index(string? q, string? province, Domain.Enums.RoomType? roomType)
         {
-            string? currentUserId = User.Identity?.IsAuthenticated == true
-                ? User.FindFirstValue(ClaimTypes.NameIdentifier)
-                : null;
+            ViewBag.SearchQuery = q;
+            ViewBag.Province = province;
+            ViewBag.RoomType = roomType;
 
-            var rooms = await _roomPostService.GetAllRoomsAsync(currentUserId);
+            var rooms = await _roomPostService.GetAllRoomsAsync(q, province, roomType);
             return View(rooms);
         }
 

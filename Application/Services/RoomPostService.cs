@@ -31,15 +31,6 @@ namespace Application.Services
             else
             {
                 rooms = await _repository.GetAllActiveAsync();
-        public async Task<IEnumerable<RoomListViewModel>> GetAllRoomsAsync(string? currentUserId = null)
-        {
-            var rooms = await _repository.GetAllActiveAsync();
-
-            // Lấy danh sách ID phòng đã tim nếu user đã đăng nhập
-            List<int> favoriteRoomIds = new List<int>();
-            if (!string.IsNullOrEmpty(currentUserId))
-            {
-                favoriteRoomIds = await _favoriteRepo.GetFavoriteRoomIdsAsync(currentUserId);
             }
 
             return rooms.Select(r => new RoomListViewModel
@@ -53,10 +44,7 @@ namespace Application.Services
                 CreatedAt = r.CreatedAt,
                 RoomNumber = r.RoomNumber,
                 RoomType = r.RoomType,
-                AmenityCount = r.RoomAmenities.Count,
-
-                LandlordId = r.LandlordId ?? string.Empty,
-                IsFavorite = favoriteRoomIds.Contains(r.Id)
+                AmenityCount = r.RoomAmenities.Count
             });
         }
 

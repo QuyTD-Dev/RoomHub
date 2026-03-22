@@ -4,6 +4,7 @@ using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260322103734_test")]
+    partial class test
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -211,8 +214,8 @@ namespace Infrastructure.Persistence.Migrations
                         {
                             Id = "test-user-id-123",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "b1ffdf74-2e44-4b12-9f00-8298148408c3",
-                            CreatedAt = new DateTime(2026, 3, 22, 11, 1, 14, 257, DateTimeKind.Utc).AddTicks(7186),
+                            ConcurrencyStamp = "62819383-1c7e-4dc2-bb21-67e84474a43c",
+                            CreatedAt = new DateTime(2026, 3, 22, 10, 37, 33, 978, DateTimeKind.Utc).AddTicks(7251),
                             Email = "owner@roomhub.com",
                             EmailConfirmed = true,
                             FullName = "Chủ Trọ Test",
@@ -225,7 +228,7 @@ namespace Infrastructure.Persistence.Migrations
                             PasswordHash = "AQAAAAEAACcQAAAAE...",
                             PhoneNumber = "0123456789",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "d5101c7d-cd75-41dd-8db7-7b7d27101b1c",
+                            SecurityStamp = "233e10fa-46a8-4946-8605-3e945268f19c",
                             TwoFactorEnabled = false,
                             UserName = "owner_test"
                         });
