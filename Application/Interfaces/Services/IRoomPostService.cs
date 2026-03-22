@@ -4,7 +4,10 @@ namespace Application.Interfaces.Services
 {
     public interface IRoomPostService
     {
-        Task<IEnumerable<RoomListViewModel>> GetAllRoomsAsync(string? currentUserId = null);
+        Task<PaginatedList<RoomListViewModel>> GetAllRoomsAsync(string? keyword = null, string? province = null, Domain.Enums.RoomType? roomType = null, int pageIndex = 1, int pageSize = 9);
+
+        // Search suggestions for autocomplete dropdown
+        Task<IEnumerable<RoomSuggestionDto>> GetSuggestionsAsync(string keyword, string? province = null, int maxResults = 6);
         Task<IEnumerable<RoomListViewModel>> GetMyRoomsAsync(string landlordId);
 
         // GET lookup data combined with viewmodels
@@ -15,5 +18,9 @@ namespace Application.Interfaces.Services
         Task UpdateRoomAsync(EditRoomViewModel model, string currentUserId);
         Task DeleteRoomAsync(int id, string currentUserId);
         Task PublishRoomAsync(CreateRoomViewModel model, string landlordId);
+
+        // Public browsing
+        Task<IEnumerable<RoomListViewModel>> GetPublicRoomsAsync();
+        Task<RoomDetailsViewModel> GetPublicRoomDetailsAsync(int id);
     }
 }

@@ -20,6 +20,10 @@ namespace Domain.Enums
         Shared,
         [Display(Name = "Căn hộ Duplex")]
         Duplex,
+        [Display(Name = "Căn hộ")]
+        Apartment,  // Khớp với SQL seed data ('Apartment')
+        [Display(Name = "Nhà nguyên căn")]
+        WholeHouse,
         [Display(Name = "Khác")]
         Other
     }

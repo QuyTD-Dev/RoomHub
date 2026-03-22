@@ -16,5 +16,12 @@ namespace Application.Interfaces.Repositories
         Task<IEnumerable<Amenity>> GetAllAmenitiesAsync();
 
         Task<IEnumerable<Room>> GetUnpublishedRoomsByLandlordIdAsync(string landlordId);
+        // Public browsing
+        Task<IEnumerable<Room>> GetAvailableRoomsAsync();
+        Task<Room?> GetRoomDetailsByIdAsync(int id);
+
+        // Search & Filter
+        Task<IEnumerable<Room>> SearchAsync(string? keyword, string? province, Domain.Enums.RoomType? roomType = null);
+        Task<(IEnumerable<Room> Items, int TotalCount)> PaginatedSearchAsync(string? keyword, string? province, Domain.Enums.RoomType? roomType, int pageIndex, int pageSize);
     }
 }

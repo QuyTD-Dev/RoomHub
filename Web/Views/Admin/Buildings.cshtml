@@ -1,0 +1,112 @@
+@model Application.DTOs.Admin.BuildingListViewModel
+@{
+    ViewData["Title"] = "Quản lý Tòa nhà";
+    ViewData["Subtitle"] = $"Tổng cộng {Model.TotalCount} tòa nhà";
+    ViewData["ActiveMenu"] = "Buildings";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<!-- ═══ Filter Bar ═══ -->
+<div class="premium-card mb-6 animate-fade-in">
+    <div class="p-4">
+        <form method="get" asp-action="Buildings" class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-lg" style="color: rgba(148,163,184,0.3);">search</span>
+                <input type="text" name="search" value="@Model.CurrentSearch" placeholder="Tìm theo tên, địa chỉ, thành phố..."
+                       class="admin-search w-full" />
+            </div>
+            <button type="submit" class="btn-primary">
+                <span class="material-symbols-outlined">search</span>
+                Tìm kiếm
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ═══ Table ═══ -->
+<div class="premium-card animate-fade-in animate-delay-2">
+    @if (Model.Buildings.Any())
+    {
+        <div class="overflow-x-auto">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Tòa nhà</th>
+                        <th>Chủ sở hữu</th>
+                        <th>Khu vực</th>
+                        <th class="text-center">Tầng</th>
+                        <th class="text-center">Phòng</th>
+                        <th>Ngày tạo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var building in Model.Buildings)
+                    {
+                        <tr>
+                            <td>
+                                <div class="flex items-center gap-3">
+                                    <div class="avatar avatar-md" style="background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(99,102,241,0.15)); border-color: rgba(59,130,246,0.1);">
+                                        <span class="material-symbols-outlined text-[15px]" style="color: #60a5fa;">apartment</span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="text-[13px] font-semibold text-white truncate">@building.Name</p>
+                                        <p class="text-[10px] truncate max-w-[220px]" style="color: rgba(148,163,184,0.4);">@building.Address</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-[13px] font-medium" style="color: #cbd5e1;">@building.OwnerName</span>
+                            </td>
+                            <td>
+                                <div>
+                                    <p class="text-[12px] font-medium text-white">@building.District</p>
+                                    <p class="text-[10px]" style="color: rgba(148,163,184,0.4);">@building.City</p>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="inline-flex items-center justify-center min-w-[2rem] h-7 px-2 rounded-lg text-[12px] font-bold"
+                                      style="background: rgba(139,92,246,0.08); color: #a78bfa; border: 1px solid rgba(139,92,246,0.12);">
+                                    @building.FloorCount
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="inline-flex items-center justify-center min-w-[2rem] h-7 px-2 rounded-lg text-[12px] font-bold"
+                                      style="background: rgba(59,130,246,0.08); color: #60a5fa; border: 1px solid rgba(59,130,246,0.12);">
+                                    @building.RoomCount
+                                </span>
+                            </td>
+                            <td>
+                                <span class="text-[12px]" style="color: rgba(148,163,184,0.5);">@building.CreatedAt.ToString("dd/MM/yyyy")</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <div class="p-4 flex items-center justify-between" style="border-top: 1px solid rgba(56,78,122,0.1);">
+                <p class="text-[11px] font-medium" style="color: rgba(148,163,184,0.3);">
+                    Trang @Model.CurrentPage / @Model.TotalPages · @Model.TotalCount kết quả
+                </p>
+                <div class="pagination">
+                    @for (int i = 1; i <= Model.TotalPages; i++)
+                    {
+                        if (i == Model.CurrentPage)
+                        { <span class="active">@i</span> }
+                        else
+                        { <a asp-action="Buildings" asp-route-page="@i" asp-route-search="@Model.CurrentSearch">@i</a> }
+                    }
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty-state">
+            <span class="material-symbols-outlined">domain_disabled</span>
+            <p class="text-[13px] font-medium">Không tìm thấy tòa nhà nào</p>
+        </div>
+    }
+</div>

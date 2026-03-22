@@ -100,5 +100,96 @@ namespace Infrastructure.Repositories
         {
             return await _context.Amenities.ToListAsync();
         }
-    }
+
+        public async Task<IEnumerable<Room>> GetAvailableRoomsAsync()
+{
+    return await _context.Rooms
+        .Include(r => r.Floor)
+            .ThenInclude(f => f.Building)
+        .Include(r => r.RoomAmenities)
+            .ThenInclude(ra => ra.Amenity)
+        .Include(r => r.RoomPhotos)
+        .Include(r => r.Reviews)
+        .Where(r => !r.IsDeleted && r.Status == Domain.Enums.RoomStatus.Active)
+        .OrderByDescending(r => r.CreatedAt)
+        .ToListAsync();
 }
+
+public async Task<Room?> GetRoomDetailsByIdAsync(int id)
+{
+    return await _context.Rooms
+        .Include(r => r.Floor)
+            .ThenInclude(f => f.Building)
+        .Include(r => r.Landlord)
+        .Include(r => r.RoomAmenities)
+            .ThenInclude(ra => ra.Amenity)
+        .Include(r => r.Deposits)
+        .Include(r => r.Reviews)
+            .ThenInclude(rv => rv.Tenant)
+        .FirstOrDefaultAsync(r => r.Id == id && !r.IsDeleted);
+}
+
+/// <summary>
+/// Tìm kiếm phòng
+/// </summary>
+        public async Task<IEnumerable<Room>> SearchAsync(string? keyword, string? province, Domain.Enums.RoomType? roomType = null)
+        {
+            var query = BuildSearchBaseQuery(keyword, province, roomType);
+            return await query
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<(IEnumerable<Room> Items, int TotalCount)> PaginatedSearchAsync(string? keyword, string? province, Domain.Enums.RoomType? roomType, int pageIndex, int pageSize)
+        {
+            var query = BuildSearchBaseQuery(keyword, province, roomType);
+            
+            int totalCount = await query.CountAsync();
+            
+            var items = await query
+                .OrderByDescending(r => r.CreatedAt)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
+        }
+
+        private IQueryable<Room> BuildSearchBaseQuery(string? keyword, string? province, Domain.Enums.RoomType? roomType)
+        {
+            var query = _context.Rooms
+                .Include(r => r.Floor)
+                    .ThenInclude(f => f.Building)
+                .Include(r => r.RoomAmenities)
+                    .ThenInclude(ra => ra.Amenity)
+                .Include(r => r.RoomPhotos)
+                .Where(r => !r.IsDeleted && (r.Status == Domain.Enums.RoomStatus.Active || r.Status == Domain.Enums.RoomStatus.Available));
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                query = query.Where(r =>
+                    EF.Functions.Collate(r.Title, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword) ||
+                    (r.Description != null && EF.Functions.Collate(r.Description, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword)) ||
+                    EF.Functions.Collate(r.Floor.Building.Name, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword) ||
+                    EF.Functions.Collate(r.Floor.Building.Address, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword)
+                );
+            }
+
+            if (!string.IsNullOrWhiteSpace(province))
+            {
+                query = query.Where(r =>
+                    (r.Floor.Building.Province != null &&
+                     EF.Functions.Collate(r.Floor.Building.Province, "SQL_Latin1_General_CP1_CI_AI").Contains(province)) ||
+                    EF.Functions.Collate(r.Floor.Building.City, "SQL_Latin1_General_CP1_CI_AI").Contains(province)
+                );
+            }
+
+            if (roomType.HasValue)
+            {
+                query = query.Where(r => r.RoomType == roomType.Value);
+            }
+
+            return query;
+        }
+    } // end class
+} // end namespace
