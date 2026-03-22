@@ -4,6 +4,7 @@ using Application.Interfaces.Services;
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -100,6 +101,97 @@ namespace Web.Controllers
             await context.SaveChangesAsync();
             return Json(new { success = true, message = "Lưu cài đặt phòng thành công!" });
         }
+        [HttpPost]
+        [HttpPost]
+        public async Task<IActionResult> AddDirectTenant(
+            [FromServices] Infrastructure.Persistence.ApplicationDbContext context,
+            [FromServices] UserManager<Domain.Entities.ApplicationUser> userManager,
+            [FromBody] AddTenantDto request)
+        {
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try
+            {
+                var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var room = await context.Rooms.FirstOrDefaultAsync(r => r.Id == request.RoomId && r.LandlordId == ownerId);
+                if (room == null) return Json(new { success = false, message = "Phòng không hợp lệ." });
+
+                // 1. Kiểm tra Khách đã có tài khoản chưa dựa vào SĐT. Nếu chưa -> Tạo tài khoản Khách (Guest)
+                var tenantUser = await userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == request.PhoneNumber);
+                if (tenantUser == null)
+                {
+                    tenantUser = new Domain.Entities.ApplicationUser
+                    {
+                        UserName = request.PhoneNumber,
+                        Email = request.PhoneNumber + "@guest.roomhub.com",
+                        PhoneNumber = request.PhoneNumber,
+
+                        // [ĐÃ SỬA]: Mở khóa FullName để không bị lỗi NOT NULL của Database
+                        FullName = request.FullName,
+
+                        // [BỔ SUNG]: Thêm Avatar mặc định đề phòng trường AvatarUrl trong DB của bạn cũng bắt buộc
+                        AvatarUrl = "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(request.FullName)
+                    };
+
+                    // [ĐÃ SỬA]: Cập nhật mật khẩu chuẩn Identity (Chữ hoa, số, ký tự đặc biệt)
+                    var result = await userManager.CreateAsync(tenantUser, "Guest@123456A!");
+                    if (!result.Succeeded)
+                    {
+                        string identityErrors = string.Join(", ", result.Errors.Select(e => e.Description));
+                        return Json(new { success = false, message = "Lỗi tạo tài khoản: " + identityErrors });
+                    }
+                }
+
+                // 2. Đổi trạng thái Phòng thành Đang Thuê
+                room.Status = Domain.Enums.RoomStatus.Occupied;
+
+                // 3. Khởi tạo Hợp đồng (Contract)
+                var contract = new Domain.Entities.Contract
+                {
+                    RoomId = room.Id,
+                    TenantId = tenantUser.Id,
+                    OwnerId = ownerId!,
+                    StartDate = request.StartDate,
+                    EndDate = request.StartDate.AddMonths(6),
+                    RentAmount = request.RentalPrice,
+                    DepositAmount = request.DepositAmount,
+                    Status = Domain.Enums.ContractStatus.Active,
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.Contracts.Add(contract);
+                await context.SaveChangesAsync(); // Cần lưu trước để lấy ContractId
+
+                // 4. Chốt số Điện Nước đầu kỳ
+                var elecReading = new Domain.Entities.UtilityReading
+                {
+                    ContractId = contract.Id,
+                    UtilityType = Domain.Enums.UtilityType.Electricity,
+                    ReadingDate = request.StartDate,
+                    NewIndex = request.InitialElec,
+                    OldIndex = 0,
+                    Usage = 0,
+                    Amount = 0
+                };
+
+                
+                context.UtilityReadings.AddRange(elecReading);
+
+                // 5. Hoàn tất toàn bộ
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Json(new { success = true, message = "Thêm khách và chốt số đầu kỳ thành công!" });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+
+                // [NÂNG CẤP QUAN TRỌNG]: Lấy lỗi chi tiết từ InnerException
+                // Nhờ dòng này, nếu DB còn thiếu trường gì, trình duyệt sẽ alert rõ ràng (Ví dụ: "Cannot insert the value NULL into column 'FirstName'")
+                string detailedError = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+
+                return Json(new { success = false, message = detailedError });
+            }
+        }
     }
 
     // Class phụ để hứng JSON gộp từ màn hình
@@ -118,5 +210,16 @@ namespace Web.Controllers
         public decimal? WaterPrice { get; set; }
         public decimal? InternetPrice { get; set; }
         public decimal? GarbagePrice { get; set; }
+    }
+    public class AddTenantDto
+    {
+        public int RoomId { get; set; }
+        public string FullName { get; set; } = null!;
+        public string PhoneNumber { get; set; } = null!;
+        public string? IdentityCard { get; set; }
+        public decimal RentalPrice { get; set; }
+        public decimal DepositAmount { get; set; }
+        public DateTime StartDate { get; set; }
+        public decimal InitialElec { get; set; }
     }
 }

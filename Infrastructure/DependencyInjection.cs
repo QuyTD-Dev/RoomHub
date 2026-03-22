@@ -76,6 +76,9 @@ namespace Infrastructure
             services.AddScoped<IBuildingRepository, BuildingRepository>();
             services.AddScoped<IBuildingService, BuildingService>();
 
+            services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+            services.AddScoped<IInvoiceService, InvoiceService>();
+
             services.AddHttpClient<IGeminiModerationService, GeminiModerationService>();
 
             return services;

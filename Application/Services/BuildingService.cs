@@ -57,10 +57,17 @@ namespace Application.Services
                 OwnerId = ownerId,
                 Name = config.Name,
                 Province = config.Province,
-                City = config.Province, // Tạm gán City = Province vì DB bắt buộc có City
+                City = config.Province,
                 District = config.District,
                 Ward = config.Ward,
                 Address = config.StreetAddress,
+
+                // [ĐÃ SỬA] - BỔ SUNG 4 DÒNG NÀY ĐỂ KHÔNG BỊ MẤT GIÁ TIỀN:
+                ElectricityPrice = config.ElectricityPrice,
+                WaterPrice = config.WaterPrice,
+                InternetPrice = config.InternetPrice,
+                GarbagePrice = config.GarbagePrice,
+
                 CreatedAt = DateTime.UtcNow
             };
 
