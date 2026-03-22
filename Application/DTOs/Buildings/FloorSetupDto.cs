@@ -1,12 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Application.DTOs.Buildings
+﻿namespace Application.DTOs.Buildings
 {
-    internal class FloorSetupDto
+    public class FloorSetupDto
     {
+        public int NumberOfFloors { get; set; }
+        public int RoomsPerFloor { get; set; }
+
+        // Dành cho trường hợp chủ nhà muốn tùy chỉnh số phòng từng tầng ở giao diện bên trái
+        public List<FloorDetailDto> CustomFloors { get; set; } = new List<FloorDetailDto>();
+    }
+
+    public class FloorDetailDto
+    {
+        public int FloorNumber { get; set; }
+        public int NumberOfRooms { get; set; }
     }
 }
