@@ -94,12 +94,13 @@ namespace Application.Services
 
                     var room = new Room
                     {
-                        Floor = floor, // Mấu chốt: Gán Object Floor vào đây để EF Core tự động nối Khóa Ngoại (FloorId)
+                        Floor = floor,
                         LandlordId = ownerId,
                         RoomNumber = roomName,
                         Title = $"Phòng {roomName}",
-                        Status = RoomStatus.Available, // Mới tạo ra thì mặc định là Trống
-                        BasePrice = 0, // Cài giá 0 để chủ nhà vào chỉnh sửa sau
+                        Status = RoomStatus.Available,
+                        IsPublished = false, // Luôn mặc định là false khi vừa sinh ra
+                        BasePrice = 0,
                         MaxCapacity = 2,
                         IsFurnished = false,
                         CreatedAt = DateTime.UtcNow

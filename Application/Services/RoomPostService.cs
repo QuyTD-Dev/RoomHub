@@ -64,15 +64,13 @@ namespace Application.Services
             });
         }
 
+        // Hàm lấy dữ liệu khởi tạo Form
         public async Task<CreateRoomViewModel> GetCreateViewModelAsync(string landlordId)
         {
-            var floors = await _repository.GetFloorsByLandlordIdAsync(landlordId);
-            var amenities = await _repository.GetAllAmenitiesAsync();
-
+            var unpublishedRooms = await _repository.GetUnpublishedRoomsByLandlordIdAsync(landlordId);
             return new CreateRoomViewModel
             {
-                AvailableFloors = floors.ToList(),
-                AvailableAmenities = amenities.ToList()
+                AvailableRooms = unpublishedRooms
             };
         }
 
@@ -182,91 +180,36 @@ namespace Application.Services
             };
         }
 
-        public async Task CreateRoomAsync(CreateRoomViewModel model, string landlordId)
+        public async Task PublishRoomAsync(CreateRoomViewModel model, string landlordId)
         {
-            var room = new Room
-            {
-                LandlordId = landlordId,
-                Title = model.Title,
-                RoomNumber = model.RoomNumber,
-                RoomType = model.RoomType,
-                BasePrice = model.BasePrice,
-                SurfaceArea = model.SurfaceArea,
-                MaxCapacity = model.MaxCapacity,
-                Description = model.Description,
-                IsFurnished = model.IsFurnished,
-                Status = model.Status,
-                CreatedAt = DateTime.UtcNow
-            };
+            var room = await _repository.GetByIdAsync(model.SelectedRoomId);
+            if (room == null || room.LandlordId != landlordId) throw new Exception("Phòng không hợp lệ.");
 
-            // Handle New Building/Floor creation
-            if (model.IsNewBuilding)
-            {
-                var newBuilding = new Building
-                {
-                    OwnerId = landlordId,
-                    Name = model.NewBuildingName ?? "Toà nhà mới",
-                    Address = model.NewBuildingAddress ?? "",
-                    City = model.NewBuildingCity ?? "",
-                    District = model.NewBuildingDistrict ?? "",
-                    Ward = model.NewBuildingWard ?? "",
-                    CreatedAt = DateTime.UtcNow
-                };
+            room.Title = model.Title;
+            room.Description = model.Description;
+            room.IsPublished = true;
+            room.UpdatedAt = DateTime.UtcNow;
 
-                var newFloor = new Floor
-                {
-                    Building = newBuilding,
-                    FloorNumber = model.NewFloorNumber ?? 1,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                room.Floor = newFloor;
-            }
-            else
-            {
-                room.FloorId = model.FloorId;
-            }
-
-            // Map RoomAmenities — explicitly set both keys so composite PK is guaranteed
-            if (model.SelectedAmenityIds != null && model.SelectedAmenityIds.Any())
-            {
-                foreach (var amenityId in model.SelectedAmenityIds)
-                {
-                    room.RoomAmenities.Add(new RoomAmenity
-                    {
-                        AmenityId = amenityId
-                        // RoomId will be set by EF after insert, but we keep it clean here
-                    });
-                }
-            }
-
-            // Upload photos to Cloudinary and map RoomPhotos
             if (model.Photos != null && model.Photos.Any())
             {
-                int order = 0;
-                foreach (var file in model.Photos)
+                foreach (var photo in model.Photos)
                 {
-                    // Skip empty/invalid files
-                    if (file == null || file.Length == 0) continue;
-
-                    var uploadResult = await _cloudinaryService.UploadImageAsync(file);
-                    if (!string.IsNullOrEmpty(uploadResult.Url))
+                    var uploadResult = await _cloudinaryService.UploadImageAsync(photo, "room_photos");
+                    var roomPhoto = new RoomPhoto
                     {
-                        room.RoomPhotos.Add(new RoomPhoto
-                        {
-                            Url = uploadResult.Url,
-                            PublicId = uploadResult.PublicId ?? string.Empty,
-                            IsMain = order == 0,      // First photo is the main photo
-                            DisplayOrder = order,
-                            UploadedAt = DateTime.UtcNow
-                        });
-                        order++;
-                    }
+                        RoomId = room.Id,
+                        Url = uploadResult.Url,
+                        PublicId = uploadResult.PublicId ?? "N/A", // Map thêm PublicId
+                        IsMain = room.RoomPhotos.Count == 0, // Ảnh đầu tiên cho làm ảnh bìa
+
+                        // [ĐÃ SỬA]: Dùng UploadedAt thay vì CreatedAt
+                        UploadedAt = DateTime.UtcNow
+                    };
+                    room.RoomPhotos.Add(roomPhoto);
                 }
             }
 
-            // Persist Room + related RoomAmenities + RoomPhotos in one SaveChanges call
-            await _repository.AddAsync(room);
+            await _repository.UpdateAsync(room);
         }
 
 

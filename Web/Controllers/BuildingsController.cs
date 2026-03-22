@@ -2,8 +2,10 @@
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
 using Domain.Entities;
+using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace Web.Controllers
@@ -35,13 +37,17 @@ namespace Web.Controllers
         }
 
         // 3. API NHẬN DỮ LIỆU TỪ WIZARD BẮN LÊN BẰNG AJAX
+        // Đổi [FromBody] thành [FromForm] để nhận File và FormData
         [HttpPost]
-        public async Task<IActionResult> CreateData([FromBody] CreateBuildingRequest request)
+        public async Task<IActionResult> CreateData([FromForm] CreateBuildingRequest request)
         {
             var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             try
             {
-                // Gọi Service để thực hiện thuật toán tạo Tầng & Phòng
+                // Gọi Service xử lý như bình thường
+                // Lưu ý: Lúc này request.Config.Photos đã chứa các file ảnh bạn tải lên.
+                // Bạn có thể gọi ICloudinaryService ở đây để lưu ảnh lên Cloud, sau đó gán URL vào DB.
+
                 int buildingId = await _buildingService.CreateBuildingAsync(ownerId, request.Config, request.Structure);
                 return Json(new { success = true, buildingId = buildingId, message = "Tạo tòa nhà thành công!" });
             }
@@ -62,6 +68,38 @@ namespace Web.Controllers
 
             return View(building);
         }
+        [HttpPost]
+        public async Task<IActionResult> UpdateRoomQuickConfig([FromServices] ApplicationDbContext context, [FromBody] UpdateRoomConfigDto request)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // Tìm phòng và kiểm tra quyền sở hữu
+            var room = await context.Rooms.FirstOrDefaultAsync(r => r.Id == request.RoomId && r.LandlordId == ownerId);
+            if (room == null) return Json(new { success = false, message = "Phòng không hợp lệ." });
+
+            // Cập nhật giá và diện tích
+            room.BasePrice = request.BasePrice;
+            room.SurfaceArea = request.SurfaceArea;
+
+            // Nếu chọn dùng giá riêng thì lưu, nếu dùng giá chung thì set Null
+            if (request.UseBuildingUtilities)
+            {
+                room.ElectricityPrice = null;
+                room.WaterPrice = null;
+                room.InternetPrice = null;
+                room.GarbagePrice = null;
+            }
+            else
+            {
+                room.ElectricityPrice = request.ElectricityPrice;
+                room.WaterPrice = request.WaterPrice;
+                room.InternetPrice = request.InternetPrice;
+                room.GarbagePrice = request.GarbagePrice;
+            }
+
+            await context.SaveChangesAsync();
+            return Json(new { success = true, message = "Lưu cài đặt phòng thành công!" });
+        }
     }
 
     // Class phụ để hứng JSON gộp từ màn hình
@@ -69,5 +107,16 @@ namespace Web.Controllers
     {
         public CreateBuildingDto Config { get; set; } = null!;
         public FloorSetupDto Structure { get; set; } = null!;
+    }
+    public class UpdateRoomConfigDto
+    {
+        public int RoomId { get; set; }
+        public decimal BasePrice { get; set; }
+        public decimal? SurfaceArea { get; set; }
+        public bool UseBuildingUtilities { get; set; } // Checkbox: Dùng giá chung hay giá riêng
+        public decimal? ElectricityPrice { get; set; }
+        public decimal? WaterPrice { get; set; }
+        public decimal? InternetPrice { get; set; }
+        public decimal? GarbagePrice { get; set; }
     }
 }

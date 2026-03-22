@@ -104,6 +104,19 @@
                                     <span class="material-symbols-outlined text-[20px]">dashboard</span>
                                     Quản lý hệ thống
                                 </a>
+                                @if (User.IsInRole("PropertyOwner"))
+                                {
+                                    <li>
+                                        <a href="@Url.Action("Index", "Buildings")" class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                                            <div class="flex items-center gap-2">
+                                                <span class="material-symbols-outlined text-[20px]">domain</span>
+                                                Quản lý Tòa nhà
+                                            </div>
+                                        </a>
+                                    </li>
+    
+                                    <li><hr class="border-gray-100 my-1"></li>
+                                }
                             </div>
 
                             @* Nút Đăng xuất *@

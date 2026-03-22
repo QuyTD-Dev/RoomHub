@@ -28,6 +28,11 @@ namespace Domain.Entities
         public DateTime? UpdatedAt { get; set; }
         public bool IsDeleted { get; set; }
 
+        public bool IsPublished { get; set; } = false;
+        public decimal? ElectricityPrice { get; set; }
+        public decimal? WaterPrice { get; set; }
+        public decimal? InternetPrice { get; set; }
+        public decimal? GarbagePrice { get; set; }
         // Navigation
         public virtual ApplicationUser Landlord { get; set; } = null!;
         public virtual Floor Floor { get; set; } = null!;
