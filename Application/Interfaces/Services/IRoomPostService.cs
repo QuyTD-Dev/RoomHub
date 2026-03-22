@@ -20,5 +20,9 @@ namespace Application.Interfaces.Services
         Task CreateRoomAsync(CreateRoomViewModel model, string landlordId);
         Task UpdateRoomAsync(EditRoomViewModel model, string currentUserId);
         Task DeleteRoomAsync(int id, string currentUserId);
+
+        // Public browsing
+        Task<IEnumerable<RoomListViewModel>> GetPublicRoomsAsync();
+        Task<RoomDetailsViewModel> GetPublicRoomDetailsAsync(int id);
     }
 }
