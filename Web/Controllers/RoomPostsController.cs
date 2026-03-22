@@ -10,10 +10,12 @@ namespace Web.Controllers
     public class RoomPostsController : Controller
     {
         private readonly IRoomPostService _roomPostService;
+        private readonly IReviewService _reviewService;
 
-        public RoomPostsController(IRoomPostService roomPostService)
+        public RoomPostsController(IRoomPostService roomPostService, IReviewService reviewService)
         {
             _roomPostService = roomPostService;
+            _reviewService = reviewService;
         }
 
         private string GetUserId()
@@ -23,9 +25,13 @@ namespace Web.Controllers
         }
 
         [AllowAnonymous]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? q, string? province, Domain.Enums.RoomType? roomType)
         {
-            var rooms = await _roomPostService.GetAllRoomsAsync();
+            string? currentUserId = User.Identity?.IsAuthenticated == true
+                ? User.FindFirstValue(ClaimTypes.NameIdentifier)
+                : null;
+
+            var rooms = await _roomPostService.GetAllRoomsAsync(currentUserId);
             return View(rooms);
         }
 
@@ -43,12 +49,25 @@ namespace Web.Controllers
             try
             {
                 var viewModel = await _roomPostService.GetRoomDetailsAsync(id);
+                var reviews = await _reviewService.GetRootReviewsByRoomAsync(id);
+                viewModel.Reviews = reviews.ToList();
                 return View(viewModel);
             }
             catch (KeyNotFoundException)
             {
                 return NotFound();
             }
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> SearchSuggestions(string q, string? province)
+        {
+            if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
+                return Json(new List<object>());
+
+            var suggestions = await _roomPostService.GetSuggestionsAsync(q.Trim(), province, 6);
+            return Json(suggestions);
         }
 
         [HttpGet]
