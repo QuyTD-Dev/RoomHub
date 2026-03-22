@@ -4,16 +4,29 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Domain.Enums
+using System.ComponentModel.DataAnnotations;
+
+public enum RoomStatus
 {
-    public enum RoomStatus
-    {
-        Available,
-        Deposited,
-        Occupied,
-        Maintenance,         // Khớp với SQL seed data ('Maintenance')
-        UnderMaintenance,    // Giữ lại để backward compat
-        Active,
-        Hidden
-    }
+    [Display(Name = "Sẵn sàng")]
+    Available,
+
+    [Display(Name = "Đã đặt cọc")]
+    Deposited,
+
+    [Display(Name = "Đã có người ở")]
+    Occupied,
+
+    [Display(Name = "Bảo trì")]
+    Maintenance, // match DB
+
+    [Display(Name = "Đang bảo trì")]
+    UnderMaintenance, // backward compat
+
+    [Display(Name = "Đang hoạt động")]
+    Active,
+
+    [Display(Name = "Đã ẩn")]
+    Hidden
 }
+

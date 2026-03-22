@@ -1,6 +1,8 @@
 using Infrastructure;
 using Application.Interfaces.Services;
 using Infrastructure.Services;
+using Application.Services;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +25,9 @@ builder.Services.ConfigureApplicationCookie(options =>
 // Application Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+//profile
+builder.Services.AddScoped<IProfileService, ProfileService>();
+
 
 // bật Session để lưu OTP
 builder.Services.AddSession();
@@ -54,9 +59,6 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Rooms}/{action=Index}/{id?}");
-
-
-app.Run();
 
 app.MapHub<Web.Hubs.ChatHub>("/chathub");
 

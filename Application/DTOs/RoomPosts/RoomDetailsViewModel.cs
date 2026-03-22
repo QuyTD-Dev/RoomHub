@@ -1,4 +1,4 @@
-﻿using Domain.Enums;
+using Domain.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace Application.DTOs.RoomPosts
@@ -22,7 +22,7 @@ namespace Application.DTOs.RoomPosts
         public int MaxCapacity { get; set; }
         public int FloorNumber { get; set; }
 
-        public List<string> Photos { get; set; } = new List<string>();
+        public List<RoomPhotoViewModel> Photos { get; set; } = new List<RoomPhotoViewModel>();
 
         // Deposit info (nullable/default)
         public decimal? DepositAmount { get; set; }
@@ -36,6 +36,9 @@ namespace Application.DTOs.RoomPosts
         public string? LandlordAvatarUrl { get; set; }
         public string? LandlordPhone { get; set; }
         public int LandlordJoinedYears { get; set; }
+
+        // Reviews / Comments
+        public List<Application.DTOs.Reviews.ReviewViewModel> Reviews { get; set; } = new();
     }
 
     public class AmenityViewModel

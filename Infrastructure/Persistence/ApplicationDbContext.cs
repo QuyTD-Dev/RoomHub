@@ -2,6 +2,7 @@ using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using RoomHub.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,6 +30,7 @@ namespace Infrastructure.Persistence
         // Rooms
         public DbSet<Room> Rooms => Set<Room>();
         public DbSet<RoomAmenity> RoomAmenities => Set<RoomAmenity>();
+        public DbSet<RoomPhoto> RoomPhotos => Set<RoomPhoto>();
 
         // Tenant profile
         public DbSet<TenantProfile> TenantProfiles => Set<TenantProfile>();
@@ -63,6 +65,7 @@ namespace Infrastructure.Persistence
         // System
         public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
+        public DbSet<FavoriteRoom> FavoriteRooms { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
