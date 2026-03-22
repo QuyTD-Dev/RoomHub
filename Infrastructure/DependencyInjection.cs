@@ -83,6 +83,7 @@ namespace Infrastructure
             services.AddScoped<IReviewService, ReviewService>();
 
             services.AddHttpClient<IGeminiModerationService, GeminiModerationService>();
+            services.AddHttpClient<IChatbotService, ChatbotService>();
 
             return services;
         }
