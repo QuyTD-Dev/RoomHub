@@ -63,13 +63,8 @@
     }
 
     function selectProvince(name, value) {
-        if (locationLabel) locationLabel.textContent = name || 'Toàn quốc';
-        if (locationInput) locationInput.value = value || '';
-        
-        // Sync with the search form hidden input if it exists
-        const syncInput = document.getElementById('search-province-sync');
-        if (syncInput) syncInput.value = value || '';
-        
+        if (locationLabel) locationLabel.textContent = name;
+        if (locationInput) locationInput.value = value;
         closeLocationDropdown();
     }
 
@@ -98,18 +93,6 @@
         opt.addEventListener('click', function () {
             selectProvince(opt.textContent.trim(), opt.dataset.province);
         });
-    });
-
-    // Initialize from URL on load
-    document.addEventListener('DOMContentLoaded', function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const province = urlParams.get('province');
-        if (province) {
-            if (locationLabel) locationLabel.textContent = province;
-            if (locationInput) locationInput.value = province;
-            const syncInput = document.getElementById('search-province-sync');
-            if (syncInput) syncInput.value = province;
-        }
     });
 
     // Close dropdown when clicking outside

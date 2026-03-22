@@ -211,8 +211,8 @@ namespace Infrastructure.Persistence.Migrations
                         {
                             Id = "test-user-id-123",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "b1ffdf74-2e44-4b12-9f00-8298148408c3",
-                            CreatedAt = new DateTime(2026, 3, 22, 11, 1, 14, 257, DateTimeKind.Utc).AddTicks(7186),
+                            ConcurrencyStamp = "eed97ed5-8f4e-46b0-b75d-b2c275a47e68",
+                            CreatedAt = new DateTime(2026, 3, 22, 8, 50, 12, 600, DateTimeKind.Utc).AddTicks(5040),
                             Email = "owner@roomhub.com",
                             EmailConfirmed = true,
                             FullName = "Chủ Trọ Test",
@@ -225,7 +225,7 @@ namespace Infrastructure.Persistence.Migrations
                             PasswordHash = "AQAAAAEAACcQAAAAE...",
                             PhoneNumber = "0123456789",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "d5101c7d-cd75-41dd-8db7-7b7d27101b1c",
+                            SecurityStamp = "0fdafeca-6e68-4bd2-93fc-6bba907bb1f2",
                             TwoFactorEnabled = false,
                             UserName = "owner_test"
                         });
