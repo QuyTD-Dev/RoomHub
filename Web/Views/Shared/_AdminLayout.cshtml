@@ -1,0 +1,229 @@
+@{
+    ViewData["AdminLayout"] = true;
+}
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>@ViewData["Title"] — RoomHub Admin</title>
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="~/css/admin/admin.css" />
+</head>
+<body class="font-sans min-h-screen" style="background: #06080f; color: #e2e8f0;">
+
+    <!-- Sidebar Overlay (mobile) -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- ═══ Sidebar ═══ -->
+    <aside id="sidebar" class="fixed top-0 left-0 z-50 h-full w-[260px] transform -translate-x-full lg:translate-x-0 transition-transform duration-300 flex flex-col border-r"
+           style="background: linear-gradient(180deg, #0a0f1e, #0d1528, #0c1120); border-color: rgba(56,78,122,0.15);">
+
+        <!-- Logo -->
+        <div class="h-[68px] flex items-center gap-3 px-5 flex-shrink-0" style="border-bottom: 1px solid rgba(56,78,122,0.12);">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center relative"
+                 style="background: linear-gradient(135deg, #f97316, #ea580c); box-shadow: 0 4px 16px rgba(249,115,22,0.3);">
+                <span class="material-symbols-outlined text-white text-xl" style="font-variation-settings:'FILL' 1">apartment</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-[17px] font-extrabold text-white tracking-tight">RoomHub</span>
+                <span class="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                      style="background: rgba(249,115,22,0.12); color: #fb923c; border: 1px solid rgba(249,115,22,0.2);">
+                    ADMIN
+                </span>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 overflow-y-auto py-5 px-3 space-y-0.5 admin-scrollbar">
+            <p class="text-[9px] font-bold uppercase tracking-[0.15em] px-3 mb-2.5" style="color: rgba(148,163,184,0.4);">Tổng quan</p>
+            <a asp-action="Index" class="nav-item @(ViewData["ActiveMenu"]?.ToString() == "Dashboard" ? "active" : "")">
+                <span class="material-symbols-outlined text-xl">dashboard</span>
+                <span>Dashboard</span>
+            </a>
+
+            <p class="text-[9px] font-bold uppercase tracking-[0.15em] px-3 mt-6 mb-2.5" style="color: rgba(148,163,184,0.4);">Quản lý</p>
+            <a asp-action="Users" class="nav-item @(ViewData["ActiveMenu"]?.ToString() == "Users" ? "active" : "")">
+                <span class="material-symbols-outlined text-xl">group</span>
+                <span>Người dùng</span>
+            </a>
+            <a asp-action="Buildings" class="nav-item @(ViewData["ActiveMenu"]?.ToString() == "Buildings" ? "active" : "")">
+                <span class="material-symbols-outlined text-xl">apartment</span>
+                <span>Tòa nhà</span>
+            </a>
+            <a asp-action="Rooms" class="nav-item @(ViewData["ActiveMenu"]?.ToString() == "Rooms" ? "active" : "")">
+                <span class="material-symbols-outlined text-xl">meeting_room</span>
+                <span>Phòng trọ</span>
+            </a>
+
+            <p class="text-[9px] font-bold uppercase tracking-[0.15em] px-3 mt-6 mb-2.5" style="color: rgba(148,163,184,0.4);">Nghiệp vụ</p>
+            <a href="#" class="nav-item opacity-40 cursor-not-allowed">
+                <span class="material-symbols-outlined text-xl">description</span>
+                <span>Hợp đồng</span>
+                <span class="ml-auto text-[8px] font-bold px-1.5 py-0.5 rounded-full" style="background: rgba(148,163,184,0.08); color: rgba(148,163,184,0.5);">P2</span>
+            </a>
+            <a href="#" class="nav-item opacity-40 cursor-not-allowed">
+                <span class="material-symbols-outlined text-xl">payments</span>
+                <span>Thanh toán</span>
+                <span class="ml-auto text-[8px] font-bold px-1.5 py-0.5 rounded-full" style="background: rgba(148,163,184,0.08); color: rgba(148,163,184,0.5);">P2</span>
+            </a>
+            <a href="#" class="nav-item opacity-40 cursor-not-allowed">
+                <span class="material-symbols-outlined text-xl">build</span>
+                <span>Bảo trì</span>
+                <span class="ml-auto text-[8px] font-bold px-1.5 py-0.5 rounded-full" style="background: rgba(148,163,184,0.08); color: rgba(148,163,184,0.5);">P2</span>
+            </a>
+
+            <p class="text-[9px] font-bold uppercase tracking-[0.15em] px-3 mt-6 mb-2.5" style="color: rgba(148,163,184,0.4);">Hệ thống</p>
+            <a href="#" class="nav-item opacity-40 cursor-not-allowed">
+                <span class="material-symbols-outlined text-xl">reviews</span>
+                <span>Đánh giá</span>
+                <span class="ml-auto text-[8px] font-bold px-1.5 py-0.5 rounded-full" style="background: rgba(148,163,184,0.08); color: rgba(148,163,184,0.5);">P3</span>
+            </a>
+            <a href="#" class="nav-item opacity-40 cursor-not-allowed">
+                <span class="material-symbols-outlined text-xl">bar_chart</span>
+                <span>Báo cáo</span>
+                <span class="ml-auto text-[8px] font-bold px-1.5 py-0.5 rounded-full" style="background: rgba(148,163,184,0.08); color: rgba(148,163,184,0.5);">P3</span>
+            </a>
+            <a href="#" class="nav-item opacity-40 cursor-not-allowed">
+                <span class="material-symbols-outlined text-xl">settings</span>
+                <span>Cài đặt</span>
+                <span class="ml-auto text-[8px] font-bold px-1.5 py-0.5 rounded-full" style="background: rgba(148,163,184,0.08); color: rgba(148,163,184,0.5);">P3</span>
+            </a>
+            <a href="#" class="nav-item opacity-40 cursor-not-allowed">
+                <span class="material-symbols-outlined text-xl">history</span>
+                <span>Nhật ký</span>
+                <span class="ml-auto text-[8px] font-bold px-1.5 py-0.5 rounded-full" style="background: rgba(148,163,184,0.08); color: rgba(148,163,184,0.5);">P3</span>
+            </a>
+        </nav>
+
+        <!-- User Section -->
+        <div class="flex-shrink-0 p-3" style="border-top: 1px solid rgba(56,78,122,0.12);">
+            <div class="flex items-center gap-3 p-2.5 rounded-xl transition-all duration-200 hover:bg-white/[0.02] cursor-pointer">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm"
+                     style="background: linear-gradient(135deg, #f97316, #db2777); box-shadow: 0 2px 8px rgba(249,115,22,0.2);">
+                    @(User.Identity?.Name?.Substring(0, 1).ToUpper() ?? "A")
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[13px] font-semibold text-white truncate">@User.Identity?.Name</p>
+                    <p class="text-[10px] font-medium" style="color: rgba(148,163,184,0.5);">Administrator</p>
+                </div>
+                <div class="w-2 h-2 rounded-full" style="background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.4);"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ═══ Main ═══ -->
+    <div class="lg:pl-[260px] min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="sticky top-0 z-30 h-[68px] flex items-center justify-between px-5 lg:px-8"
+                style="background: rgba(6,8,15,0.85); backdrop-filter: blur(16px) saturate(180%); border-bottom: 1px solid rgba(56,78,122,0.1);">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSidebar()" class="lg:hidden p-2 rounded-xl transition-all duration-200 hover:bg-white/[0.05]" style="color: #94a3b8;">
+                    <span class="material-symbols-outlined text-xl">menu</span>
+                </button>
+                <div>
+                    <h1 class="text-[17px] font-bold text-white tracking-tight leading-tight">@ViewData["Title"]</h1>
+                    @if (ViewData["Subtitle"] != null)
+                    {
+                        <p class="text-[11px] font-medium" style="color: rgba(148,163,184,0.5);">@ViewData["Subtitle"]</p>
+                    }
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                <!-- Timestamp -->
+                <div class="hidden md:flex items-center gap-1.5 mr-2 px-3 py-1.5 rounded-lg" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(56,78,122,0.1);">
+                    <span class="material-symbols-outlined text-sm" style="color: rgba(148,163,184,0.4);">schedule</span>
+                    <span class="text-[11px] font-medium" style="color: rgba(148,163,184,0.4);" id="liveClock"></span>
+                </div>
+
+                <a asp-controller="RoomPosts" asp-action="Index"
+                   class="p-2.5 rounded-xl transition-all duration-200 hover:bg-white/[0.05]"
+                   style="color: #64748b;" data-tooltip="Về trang chủ">
+                    <span class="material-symbols-outlined text-xl">home</span>
+                </a>
+                <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0">
+                    <button type="submit"
+                            class="p-2.5 rounded-xl transition-all duration-200 hover:bg-red-500/5"
+                            style="color: #64748b;" data-tooltip="Đăng xuất">
+                        <span class="material-symbols-outlined text-xl">logout</span>
+                    </button>
+                </form>
+            </div>
+        </header>
+
+        <!-- Toast -->
+        @if (TempData["Success"] != null)
+        {
+            <div class="mx-5 lg:mx-8 mt-5">
+                <div class="toast-notification flex items-center gap-3 p-4"
+                     style="background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.15);">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                         style="background: rgba(16,185,129,0.1);">
+                        <span class="material-symbols-outlined text-emerald-400 text-lg" style="font-variation-settings:'FILL' 1">check_circle</span>
+                    </div>
+                    <span class="text-[13px] font-medium text-emerald-300 flex-1">@TempData["Success"]</span>
+                    <div class="h-1 w-16 rounded-full overflow-hidden" style="background: rgba(16,185,129,0.1);">
+                        <div class="toast-progress h-full rounded-full w-full" style="background: #34d399;"></div>
+                    </div>
+                </div>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="mx-5 lg:mx-8 mt-5">
+                <div class="toast-notification flex items-center gap-3 p-4"
+                     style="background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15);">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                         style="background: rgba(239,68,68,0.1);">
+                        <span class="material-symbols-outlined text-red-400 text-lg" style="font-variation-settings:'FILL' 1">error</span>
+                    </div>
+                    <span class="text-[13px] font-medium text-red-300 flex-1">@TempData["Error"]</span>
+                </div>
+            </div>
+        }
+
+        <!-- Page Content -->
+        <main class="flex-1 p-5 lg:p-8">
+            @RenderBody()
+        </main>
+
+        <!-- Footer -->
+        <footer class="px-5 lg:px-8 py-5" style="border-top: 1px solid rgba(56,78,122,0.08);">
+            <div class="flex items-center justify-between">
+                <p class="text-[11px] font-medium" style="color: rgba(148,163,184,0.3);">© 2024 RoomHub Admin Panel</p>
+                <p class="text-[11px] font-medium" style="color: rgba(148,163,184,0.2);">v1.0.0</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="~/js/admin/admin.js"></script>
+    <script>
+        // Live Clock
+        function updateClock() {
+            const now = new Date();
+            const el = document.getElementById('liveClock');
+            if (el) el.textContent = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' — ' + now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+        updateClock();
+        setInterval(updateClock, 30000);
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

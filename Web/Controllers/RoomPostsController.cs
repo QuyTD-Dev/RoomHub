@@ -25,14 +25,20 @@ namespace Web.Controllers
         }
 
         [AllowAnonymous]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? q, string? province, Domain.Enums.RoomType? roomType, int page = 1)
         {
-            string? currentUserId = User.Identity?.IsAuthenticated == true
-                ? User.FindFirstValue(ClaimTypes.NameIdentifier)
-                : null;
+            int pageSize = 9;
+            var paginatedRooms = await _roomPostService.GetAllRoomsAsync(q, province, roomType, page, pageSize);
 
-            var rooms = await _roomPostService.GetAllRoomsAsync(currentUserId);
-            return View(rooms);
+            // Pass filter state to view
+            ViewBag.isSearching = !string.IsNullOrWhiteSpace(q) || !string.IsNullOrWhiteSpace(province) || roomType.HasValue;
+            ViewBag.searchQuery = q;
+            ViewBag.province = province;
+            ViewBag.roomType = roomType;
+            ViewBag.CurrentPage = paginatedRooms.PageIndex;
+            ViewBag.TotalPages = paginatedRooms.TotalPages;
+
+            return View(paginatedRooms);
         }
 
         public async Task<IActionResult> MyPosts()
@@ -57,6 +63,17 @@ namespace Web.Controllers
             {
                 return NotFound();
             }
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> SearchSuggestions(string q, string? province)
+        {
+            if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 2)
+                return Json(new List<object>());
+
+            var suggestions = await _roomPostService.GetSuggestionsAsync(q.Trim(), province, 6);
+            return Json(suggestions);
         }
 
         [HttpGet]

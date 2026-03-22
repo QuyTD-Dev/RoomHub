@@ -17,18 +17,11 @@ namespace Application.Services
             _favoriteRepo = favoriteRepo;
         }
 
-        public async Task<IEnumerable<RoomListViewModel>> GetAllRoomsAsync(string? currentUserId = null)
+        public async Task<PaginatedList<RoomListViewModel>> GetAllRoomsAsync(string? keyword = null, string? province = null, Domain.Enums.RoomType? roomType = null, int pageIndex = 1, int pageSize = 9)
         {
-            var rooms = await _repository.GetAllActiveAsync();
+            var (rooms, totalCount) = await _repository.PaginatedSearchAsync(keyword, province, roomType, pageIndex, pageSize);
 
-            // Lấy danh sách ID phòng đã tim nếu user đã đăng nhập
-            List<int> favoriteRoomIds = new List<int>();
-            if (!string.IsNullOrEmpty(currentUserId))
-            {
-                favoriteRoomIds = await _favoriteRepo.GetFavoriteRoomIdsAsync(currentUserId);
-            }
-
-            return rooms.Select(r => new RoomListViewModel
+            var items = rooms.Select(r => new RoomListViewModel
             {
                 Id = r.Id,
                 Title = r.Title,
@@ -40,9 +33,35 @@ namespace Application.Services
                 RoomNumber = r.RoomNumber,
                 RoomType = r.RoomType,
                 AmenityCount = r.RoomAmenities.Count,
-
                 LandlordId = r.LandlordId ?? string.Empty,
-                IsFavorite = favoriteRoomIds.Contains(r.Id)
+                // Lấy ảnh chính hoặc ảnh đầu tiên
+                MainPhotoUrl = r.RoomPhotos?.FirstOrDefault(p => p.IsMain)?.Url ?? r.RoomPhotos?.OrderBy(p => p.DisplayOrder).FirstOrDefault()?.Url
+            }).ToList();
+
+            return new PaginatedList<RoomListViewModel>(items, totalCount, pageIndex, pageSize);
+        }
+
+        public async Task<IEnumerable<RoomSuggestionDto>> GetSuggestionsAsync(string keyword, string? province = null, int maxResults = 6)
+        {
+            if (string.IsNullOrWhiteSpace(keyword)) return Enumerable.Empty<RoomSuggestionDto>();
+
+            var rooms = await _repository.SearchAsync(keyword, province);
+
+            return rooms.Take(maxResults).Select(r =>
+            {
+                var mainPhoto = r.RoomPhotos?.FirstOrDefault(p => p.IsMain)?.Url
+                                ?? r.RoomPhotos?.OrderBy(p => p.DisplayOrder).FirstOrDefault()?.Url
+                                ?? "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&q=70";
+
+                return new RoomSuggestionDto
+                {
+                    Id = r.Id,
+                    Title = r.Title,
+                    BasePrice = r.BasePrice,
+                    MainPhotoUrl = mainPhoto,
+                    Address = r.Floor?.Building?.Address ?? "Chưa cập nhật",
+                    RoomType = r.RoomType
+                };
             });
         }
 
@@ -359,6 +378,98 @@ namespace Application.Services
             }
 
             await _repository.DeleteAsync(room);
+        }
+
+        // =========================
+        // PUBLIC BROWSING
+        // =========================
+
+        public async Task<IEnumerable<RoomListViewModel>> GetPublicRoomsAsync()
+        {
+            var rooms = await _repository.GetAvailableRoomsAsync();
+            return rooms.Select(r => new RoomListViewModel
+            {
+                Id = r.Id,
+                Title = r.Title,
+                BasePrice = r.BasePrice,
+                SurfaceArea = r.SurfaceArea,
+                Address = r.Floor?.Building?.Address ?? "Chưa cập nhật",
+                Status = r.Status,
+                CreatedAt = r.CreatedAt,
+                RoomNumber = r.RoomNumber,
+                RoomType = r.RoomType,
+                AmenityCount = r.RoomAmenities.Count
+            });
+        }
+
+        public async Task<RoomDetailsViewModel> GetPublicRoomDetailsAsync(int id)
+        {
+            var room = await _repository.GetRoomDetailsByIdAsync(id);
+            if (room == null)
+                throw new KeyNotFoundException("Room not found");
+
+            var photoUrls = new List<RoomPhotoViewModel>();
+            if (room.RoomPhotos != null && room.RoomPhotos.Any())
+            {
+                photoUrls = room.RoomPhotos.OrderBy(p => p.DisplayOrder).Select(p => new RoomPhotoViewModel
+                {
+                    Id = p.Id,
+                    Url = p.Url,
+                    IsMain = p.IsMain
+                }).ToList();
+            }
+            if (!photoUrls.Any())
+            {
+                photoUrls.Add(new RoomPhotoViewModel { Id = 0, Url = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80", IsMain = true });
+            }
+
+            var address = room.Floor?.Building?.Address ?? "Chưa cập nhật";
+            var locationDetails = "";
+            if (room.Floor?.Building != null)
+            {
+                locationDetails = $"{room.Floor.Building.Ward}, {room.Floor.Building.District}, {room.Floor.Building.City}";
+            }
+
+            var joinedYears = 0;
+            if (room.Landlord != null)
+            {
+                joinedYears = DateTime.UtcNow.Year - room.Landlord.CreatedAt.Year;
+                if (joinedYears == 0) joinedYears = 1;
+            }
+
+            return new RoomDetailsViewModel
+            {
+                Id = room.Id,
+                Title = room.Title,
+                Description = room.Description ?? "Không có mô tả chi tiết.",
+                BasePrice = room.BasePrice,
+                SurfaceArea = room.SurfaceArea,
+                Address = address,
+                LocationDetails = locationDetails,
+                Status = room.Status,
+                CreatedAt = room.CreatedAt,
+                UpdatedAt = room.UpdatedAt,
+                RoomNumber = room.RoomNumber,
+                RoomType = room.RoomType,
+                IsFurnished = room.IsFurnished,
+                MaxCapacity = room.MaxCapacity,
+                FloorNumber = room.Floor?.FloorNumber ?? 0,
+                Photos = photoUrls,
+                DepositAmount = room.Deposits?.FirstOrDefault()?.Amount ?? room.BasePrice,
+                Amenities = room.RoomAmenities?
+                    .Where(ra => ra.Amenity != null)
+                    .Select(ra => new AmenityViewModel
+                    {
+                        Id = ra.Amenity.Id,
+                        Name = ra.Amenity.Name,
+                        IconUrl = ra.Amenity.IconUrl
+                    }).ToList() ?? new List<AmenityViewModel>(),
+                LandlordId = room.LandlordId,
+                LandlordName = room.Landlord?.FullName ?? "Landlord",
+                LandlordAvatarUrl = room.Landlord?.AvatarUrl ?? $"https://ui-avatars.com/api/?name={room.Landlord?.FullName ?? "L"}&background=FF6B35&color=fff",
+                LandlordPhone = room.Landlord?.PhoneNumber,
+                LandlordJoinedYears = joinedYears
+            };
         }
     }
 }

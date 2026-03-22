@@ -1,4 +1,4 @@
-﻿using Domain.Enums;
+using Domain.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace Application.DTOs.RoomPosts
@@ -17,5 +17,6 @@ namespace Application.DTOs.RoomPosts
         public int AmenityCount { get; set; }
         public string LandlordId { get; set; } = string.Empty;
         public bool IsFavorite { get; set; } = false;
+        public string? MainPhotoUrl { get; set; }
     }
 }

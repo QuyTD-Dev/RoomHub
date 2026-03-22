@@ -7,6 +7,7 @@ using Application.Services;
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Infrastructure.Repositories;
+using Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -69,6 +70,14 @@ namespace Infrastructure
             services.AddScoped<IMessageRepository, MessageRepository>();
             services.AddScoped<IMessageService, MessageService>();
 
+            // Admin
+            services.AddScoped<IAdminRepository, AdminRepository>();
+            services.AddScoped<IAdminService, AdminService>();
+
+            // AI
+            services.Configure<Application.DTOs.Admin.GeminiSettings>(
+                configuration.GetSection("GeminiSettings"));
+            services.AddHttpClient<IAIService, AIService>();
             services.AddScoped<IReviewRepository, ReviewRepository>();
             services.AddScoped<IReviewViolationRepository, ReviewViolationRepository>();
             services.AddScoped<IReviewService, ReviewService>();
