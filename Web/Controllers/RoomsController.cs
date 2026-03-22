@@ -13,24 +13,15 @@ namespace Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
-            var rooms = await _roomPostService.GetPublicRoomsAsync();
-            return View(rooms);
+            return RedirectToAction("Index", "RoomPosts");
         }
 
         [HttpGet]
-        public async Task<IActionResult> Details(int id)
+        public IActionResult Details(int id)
         {
-            try
-            {
-                var viewModel = await _roomPostService.GetPublicRoomDetailsAsync(id);
-                return View(viewModel);
-            }
-            catch (KeyNotFoundException)
-            {
-                return NotFound();
-            }
+            return RedirectToAction("Details", "RoomPosts", new { id });
         }
     }
 }

@@ -17,32 +17,11 @@ namespace Application.Services
             _favoriteRepo = favoriteRepo;
         }
 
-        public async Task<IEnumerable<RoomListViewModel>> GetAllRoomsAsync(string? keyword = null, string? province = null, Domain.Enums.RoomType? roomType = null)
+        public async Task<PaginatedList<RoomListViewModel>> GetAllRoomsAsync(string? keyword = null, string? province = null, Domain.Enums.RoomType? roomType = null, int pageIndex = 1, int pageSize = 9)
         {
-            // Nếu không có filter → dùng GetAllActiveAsync() như cũ (không breaking change)
-            // Nếu có filter → dùng SearchAsync() để query DB có điều kiện
-            IEnumerable<Room> rooms;
+            var (rooms, totalCount) = await _repository.PaginatedSearchAsync(keyword, province, roomType, pageIndex, pageSize);
 
-            bool hasFilter = !string.IsNullOrWhiteSpace(keyword) || !string.IsNullOrWhiteSpace(province) || roomType.HasValue;
-            if (hasFilter)
-            {
-                rooms = await _repository.SearchAsync(keyword, province, roomType);
-            }
-            else
-            {
-                rooms = await _repository.GetAllActiveAsync();
-        public async Task<IEnumerable<RoomListViewModel>> GetAllRoomsAsync(string? currentUserId = null)
-        {
-            var rooms = await _repository.GetAllActiveAsync();
-
-            // Lấy danh sách ID phòng đã tim nếu user đã đăng nhập
-            List<int> favoriteRoomIds = new List<int>();
-            if (!string.IsNullOrEmpty(currentUserId))
-            {
-                favoriteRoomIds = await _favoriteRepo.GetFavoriteRoomIdsAsync(currentUserId);
-            }
-
-            return rooms.Select(r => new RoomListViewModel
+            var items = rooms.Select(r => new RoomListViewModel
             {
                 Id = r.Id,
                 Title = r.Title,
@@ -54,10 +33,12 @@ namespace Application.Services
                 RoomNumber = r.RoomNumber,
                 RoomType = r.RoomType,
                 AmenityCount = r.RoomAmenities.Count,
-
                 LandlordId = r.LandlordId ?? string.Empty,
-                IsFavorite = favoriteRoomIds.Contains(r.Id)
-            });
+                // Lấy ảnh chính hoặc ảnh đầu tiên
+                MainPhotoUrl = r.RoomPhotos?.FirstOrDefault(p => p.IsMain)?.Url ?? r.RoomPhotos?.OrderBy(p => p.DisplayOrder).FirstOrDefault()?.Url
+            }).ToList();
+
+            return new PaginatedList<RoomListViewModel>(items, totalCount, pageIndex, pageSize);
         }
 
         public async Task<IEnumerable<RoomSuggestionDto>> GetSuggestionsAsync(string keyword, string? province = null, int maxResults = 6)
@@ -427,14 +408,19 @@ namespace Application.Services
             if (room == null)
                 throw new KeyNotFoundException("Room not found");
 
-            var photos = new List<string>();
-            if (!string.IsNullOrWhiteSpace(room.Photos))
+            var photoUrls = new List<RoomPhotoViewModel>();
+            if (room.RoomPhotos != null && room.RoomPhotos.Any())
             {
-                photos = room.Photos.Replace("[", "").Replace("]", "").Replace("\"", "").Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+                photoUrls = room.RoomPhotos.OrderBy(p => p.DisplayOrder).Select(p => new RoomPhotoViewModel
+                {
+                    Id = p.Id,
+                    Url = p.Url,
+                    IsMain = p.IsMain
+                }).ToList();
             }
-            if (!photos.Any())
+            if (!photoUrls.Any())
             {
-                photos.Add("https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80");
+                photoUrls.Add(new RoomPhotoViewModel { Id = 0, Url = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80", IsMain = true });
             }
 
             var address = room.Floor?.Building?.Address ?? "Chưa cập nhật";
@@ -468,7 +454,7 @@ namespace Application.Services
                 IsFurnished = room.IsFurnished,
                 MaxCapacity = room.MaxCapacity,
                 FloorNumber = room.Floor?.FloorNumber ?? 0,
-                Photos = photos,
+                Photos = photoUrls,
                 DepositAmount = room.Deposits?.FirstOrDefault()?.Amount ?? room.BasePrice,
                 Amenities = room.RoomAmenities?
                     .Where(ra => ra.Amenity != null)

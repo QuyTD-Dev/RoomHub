@@ -6,27 +6,31 @@ using System.Threading.Tasks;
 
 using System.ComponentModel.DataAnnotations;
 
-public enum RoomStatus
+namespace Domain.Enums
 {
-    [Display(Name = "Sẵn sàng")]
-    Available,
+    public enum RoomStatus
+    {
+        [Display(Name = "Sẵn sàng")]
+        Available,
 
-    [Display(Name = "Đã đặt cọc")]
-    Deposited,
+        [Display(Name = "Đã đặt cọc")]
+        Deposited,
 
-    [Display(Name = "Đã có người ở")]
-    Occupied,
+        [Display(Name = "Đã có người ở")]
+        Occupied,
 
-    [Display(Name = "Bảo trì")]
-    Maintenance, // match DB
+        [Display(Name = "Bảo trì")]
+        Maintenance, // match DB
 
-    [Display(Name = "Đang bảo trì")]
-    UnderMaintenance, // backward compat
+        [Display(Name = "Đang bảo trì")]
+        UnderMaintenance, // backward compat
 
-    [Display(Name = "Đang hoạt động")]
-    Active,
+        [Display(Name = "Đang hoạt động")]
+        Active,
 
-    [Display(Name = "Đã ẩn")]
-    Hidden
+        [Display(Name = "Đã ẩn")]
+        Hidden
+    }
 }
+
 
