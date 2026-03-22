@@ -19,7 +19,7 @@ namespace Web.Controllers
         private string GetUserId()
         {
             //return User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new UnauthorizedAccessException();
-            return "test-user-id-123";
+            return "u-owner-001"; // Khớp với Landlord số 1 trong DB (có 11 phòng)
         }
 
         public async Task<IActionResult> Index()

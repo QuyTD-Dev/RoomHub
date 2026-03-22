@@ -68,5 +68,32 @@ namespace Infrastructure.Repositories
         {
             return await _context.Amenities.ToListAsync();
         }
+
+        public async Task<IEnumerable<Room>> GetAvailableRoomsAsync()
+        {
+            return await _context.Rooms
+                .Include(r => r.Floor)
+                    .ThenInclude(f => f.Building)
+                .Include(r => r.RoomAmenities)
+                    .ThenInclude(ra => ra.Amenity)
+                .Include(r => r.Reviews)
+                .Where(r => !r.IsDeleted)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<Room?> GetRoomDetailsByIdAsync(int id)
+        {
+            return await _context.Rooms
+                .Include(r => r.Floor)
+                    .ThenInclude(f => f.Building)
+                .Include(r => r.Landlord)
+                .Include(r => r.RoomAmenities)
+                    .ThenInclude(ra => ra.Amenity)
+                .Include(r => r.Deposits)
+                .Include(r => r.Reviews)
+                    .ThenInclude(rv => rv.Tenant)
+                .FirstOrDefaultAsync(r => r.Id == id && !r.IsDeleted);
+        }
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,6 +13,7 @@ namespace Domain.Enums
         Studio,
         Shared,
         Duplex,
+        Apartment,  // Khớp với SQL seed data ('Apartment')
         Other
     }
 }

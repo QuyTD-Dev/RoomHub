@@ -1,0 +1,181 @@
+@model Application.DTOs.Admin.UserListViewModel
+@{
+    ViewData["Title"] = "Quản lý Người dùng";
+    ViewData["Subtitle"] = $"Tổng cộng {Model.TotalCount} người dùng";
+    ViewData["ActiveMenu"] = "Users";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<!-- ═══ Filter Bar ═══ -->
+<div class="premium-card mb-6 animate-fade-in">
+    <div class="p-4">
+        <form method="get" asp-action="Users" class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-lg" style="color: rgba(148,163,184,0.3);">search</span>
+                <input type="text" name="search" value="@Model.CurrentSearch" placeholder="Tìm theo tên, email..."
+                       class="admin-search w-full" />
+            </div>
+            <select name="role" class="admin-select min-w-[160px]">
+                <option value="">Tất cả roles</option>
+                <option value="Administrator" selected="@(Model.CurrentRole == "Administrator")">Administrator</option>
+                <option value="PropertyOwner" selected="@(Model.CurrentRole == "PropertyOwner")">PropertyOwner</option>
+                <option value="Tenant" selected="@(Model.CurrentRole == "Tenant")">Tenant</option>
+            </select>
+            <button type="submit" class="btn-primary">
+                <span class="material-symbols-outlined">filter_list</span>
+                Lọc
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ═══ Table ═══ -->
+<div class="premium-card animate-fade-in animate-delay-2">
+    @if (Model.Users.Any())
+    {
+        <div class="overflow-x-auto">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Người dùng</th>
+                        <th>Role</th>
+                        <th>Trạng thái</th>
+                        <th>
+                            <div class="flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[11px]" style="color: #a78bfa;">auto_awesome</span>
+                                AI Risk
+                            </div>
+                        </th>
+                        <th>Ngày tham gia</th>
+                        <th class="text-center">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ var avatarGradients = new[] {
+                        "linear-gradient(135deg, #f97316, #db2777)",
+                        "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                        "linear-gradient(135deg, #0ea5e9, #6366f1)",
+                        "linear-gradient(135deg, #22c55e, #16a34a)",
+                        "linear-gradient(135deg, #eab308, #f97316)",
+                        "linear-gradient(135deg, #ec4899, #f43f5e)",
+                        "linear-gradient(135deg, #14b8a6, #06b6d4)"
+                    }; }
+                    @foreach (var user in Model.Users)
+                    {
+                        var idx = Model.Users.ToList().IndexOf(user) % avatarGradients.Length;
+                        <tr>
+                            <td>
+                                <div class="flex items-center gap-3">
+                                    <div class="avatar avatar-md" style="background: @avatarGradients[idx];">
+                                        @user.FullName.Substring(0, 1).ToUpper()
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="text-[13px] font-semibold text-white truncate">@user.FullName</p>
+                                        <p class="text-[11px] truncate" style="color: rgba(148,163,184,0.4);">@user.Email</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge @(user.Role == "Admin" || user.Role == "Administrator" ? "badge-danger" : user.Role == "PropertyOwner" || user.Role == "Landlord" ? "badge-warning" : "badge-info")">
+                                    @user.Role
+                                </span>
+                            </td>
+                            <td>
+                                <div class="flex flex-wrap gap-1.5">
+                                    @if (user.IsVerified)
+                                    {
+                                        <span class="badge badge-success">
+                                            <span class="material-symbols-outlined text-[10px]" style="font-variation-settings:'FILL' 1;">verified</span>
+                                            Verified
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-neutral">Chưa xác thực</span>
+                                    }
+                                    @if (user.IsBanned)
+                                    {
+                                        <span class="badge badge-danger">
+                                            <span class="material-symbols-outlined text-[10px]">block</span>
+                                            Banned
+                                        </span>
+                                    }
+                                </div>
+                            </td>
+                            <td>
+                                @{
+                                    var risk = Model.UserRisks.GetValueOrDefault(user.Id);
+                                    var riskBadge = risk?.Level switch {
+                                        "High" => "badge-danger",
+                                        "Medium" => "badge-warning",
+                                        _ => "badge-success"
+                                    };
+                                    var riskIcon = risk?.Level switch {
+                                        "High" => "error",
+                                        "Medium" => "warning",
+                                        _ => "check_circle"
+                                    };
+                                }
+                                <span class="badge @riskBadge" data-tooltip="@(risk?.Reason ?? "")">
+                                    <span class="material-symbols-outlined text-[10px]" style="font-variation-settings:'FILL' 1;">@riskIcon</span>
+                                    @(risk?.Level ?? "Low")
+                                </span>
+                            </td>
+                            <td>
+                                <span class="text-[12px]" style="color: rgba(148,163,184,0.5);">@user.CreatedAt.ToString("dd/MM/yyyy")</span>
+                            </td>
+                            <td>
+                                <div class="flex items-center justify-center gap-1">
+                                    <form asp-action="ToggleVerify" asp-route-id="@user.Id" method="post" class="inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn-action verify" data-tooltip="@(user.IsVerified ? "Bỏ xác thực" : "Xác thực")">
+                                            <span class="material-symbols-outlined">@(user.IsVerified ? "unpublished" : "verified")</span>
+                                        </button>
+                                    </form>
+                                    <form asp-action="ToggleBan" asp-route-id="@user.Id" method="post" class="inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn-action ban" data-tooltip="@(user.IsBanned ? "Unban" : "Ban")">
+                                            <span class="material-symbols-outlined">@(user.IsBanned ? "lock_open" : "block")</span>
+                                        </button>
+                                    </form>
+                                    <form asp-action="DeleteUser" asp-route-id="@user.Id" method="post" class="inline"
+                                          onsubmit="return confirm('Bạn chắc chắn muốn xóa người dùng này?')">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn-action delete" data-tooltip="Xóa">
+                                            <span class="material-symbols-outlined">delete</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <div class="p-4 flex items-center justify-between" style="border-top: 1px solid rgba(56,78,122,0.1);">
+                <p class="text-[11px] font-medium" style="color: rgba(148,163,184,0.3);">
+                    Trang @Model.CurrentPage / @Model.TotalPages · @Model.TotalCount kết quả
+                </p>
+                <div class="pagination">
+                    @for (int i = 1; i <= Model.TotalPages; i++)
+                    {
+                        if (i == Model.CurrentPage)
+                        { <span class="active">@i</span> }
+                        else
+                        { <a asp-action="Users" asp-route-page="@i" asp-route-role="@Model.CurrentRole" asp-route-search="@Model.CurrentSearch">@i</a> }
+                    }
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty-state">
+            <span class="material-symbols-outlined">person_off</span>
+            <p class="text-[13px] font-medium">Không tìm thấy người dùng nào</p>
+        </div>
+    }
+</div>

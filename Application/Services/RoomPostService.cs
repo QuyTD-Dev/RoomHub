@@ -220,5 +220,92 @@ namespace Application.Services
 
             await _repository.DeleteAsync(room);
         }
+
+        // =========================
+        // PUBLIC BROWSING
+        // =========================
+
+        public async Task<IEnumerable<RoomListViewModel>> GetPublicRoomsAsync()
+        {
+            var rooms = await _repository.GetAvailableRoomsAsync();
+            return rooms.Select(r => new RoomListViewModel
+            {
+                Id = r.Id,
+                Title = r.Title,
+                BasePrice = r.BasePrice,
+                SurfaceArea = r.SurfaceArea,
+                Address = r.Floor?.Building?.Address ?? "Chưa cập nhật",
+                Status = r.Status,
+                CreatedAt = r.CreatedAt,
+                RoomNumber = r.RoomNumber,
+                RoomType = r.RoomType,
+                AmenityCount = r.RoomAmenities.Count
+            });
+        }
+
+        public async Task<RoomDetailsViewModel> GetPublicRoomDetailsAsync(int id)
+        {
+            var room = await _repository.GetRoomDetailsByIdAsync(id);
+            if (room == null)
+                throw new KeyNotFoundException("Room not found");
+
+            var photos = new List<string>();
+            if (!string.IsNullOrWhiteSpace(room.Photos))
+            {
+                photos = room.Photos.Replace("[", "").Replace("]", "").Replace("\"", "").Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+            }
+            if (!photos.Any())
+            {
+                photos.Add("https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80");
+            }
+
+            var address = room.Floor?.Building?.Address ?? "Chưa cập nhật";
+            var locationDetails = "";
+            if (room.Floor?.Building != null)
+            {
+                locationDetails = $"{room.Floor.Building.Ward}, {room.Floor.Building.District}, {room.Floor.Building.City}";
+            }
+
+            var joinedYears = 0;
+            if (room.Landlord != null)
+            {
+                joinedYears = DateTime.UtcNow.Year - room.Landlord.CreatedAt.Year;
+                if (joinedYears == 0) joinedYears = 1;
+            }
+
+            return new RoomDetailsViewModel
+            {
+                Id = room.Id,
+                Title = room.Title,
+                Description = room.Description ?? "Không có mô tả chi tiết.",
+                BasePrice = room.BasePrice,
+                SurfaceArea = room.SurfaceArea,
+                Address = address,
+                LocationDetails = locationDetails,
+                Status = room.Status,
+                CreatedAt = room.CreatedAt,
+                UpdatedAt = room.UpdatedAt,
+                RoomNumber = room.RoomNumber,
+                RoomType = room.RoomType,
+                IsFurnished = room.IsFurnished,
+                MaxCapacity = room.MaxCapacity,
+                FloorNumber = room.Floor?.FloorNumber ?? 0,
+                Photos = photos,
+                DepositAmount = room.Deposits?.FirstOrDefault()?.Amount ?? room.BasePrice,
+                Amenities = room.RoomAmenities?
+                    .Where(ra => ra.Amenity != null)
+                    .Select(ra => new AmenityViewModel
+                    {
+                        Id = ra.Amenity.Id,
+                        Name = ra.Amenity.Name,
+                        IconUrl = ra.Amenity.IconUrl
+                    }).ToList() ?? new List<AmenityViewModel>(),
+                LandlordId = room.LandlordId,
+                LandlordName = room.Landlord?.FullName ?? "Landlord",
+                LandlordAvatarUrl = room.Landlord?.AvatarUrl ?? $"https://ui-avatars.com/api/?name={room.Landlord?.FullName ?? "L"}&background=FF6B35&color=fff",
+                LandlordPhone = room.Landlord?.PhoneNumber,
+                LandlordJoinedYears = joinedYears
+            };
+        }
     }
 }

@@ -1,4 +1,4 @@
-﻿using Domain.Entities;
+using Domain.Entities;
 
 namespace Application.Interfaces.Repositories
 {
@@ -13,5 +13,9 @@ namespace Application.Interfaces.Repositories
         // Lookup data helpers
         Task<IEnumerable<Floor>> GetFloorsByLandlordIdAsync(string landlordId);
         Task<IEnumerable<Amenity>> GetAllAmenitiesAsync();
+
+        // Public browsing
+        Task<IEnumerable<Room>> GetAvailableRoomsAsync();
+        Task<Room?> GetRoomDetailsByIdAsync(int id);
     }
 }

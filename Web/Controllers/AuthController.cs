@@ -334,6 +334,15 @@ namespace Web.Controllers
 
             return RedirectToAction("Index", "Home");
         }
+        // =========================
+        // ACCESS DENIED
+        // =========================
+        [HttpGet]
+        public IActionResult AccessDenied()
+        {
+            return View();
+        }
+
         [HttpPost]
         public async Task<IActionResult> Logout()
         {

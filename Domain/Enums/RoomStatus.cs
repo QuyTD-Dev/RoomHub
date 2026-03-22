@@ -11,7 +11,8 @@ namespace Domain.Enums
         Available,
         Deposited,
         Occupied,
-        UnderMaintenance,
+        Maintenance,         // Khớp với SQL seed data ('Maintenance')
+        UnderMaintenance,    // Giữ lại để backward compat
         Active,
         Hidden
     }
