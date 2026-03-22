@@ -22,6 +22,8 @@ namespace Domain.Enums
         Duplex,
         [Display(Name = "Căn hộ")]
         Apartment,  // Khớp với SQL seed data ('Apartment')
+        [Display(Name = "Nhà nguyên căn")]
+        WholeHouse,
         [Display(Name = "Khác")]
         Other
     }

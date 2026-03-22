@@ -79,8 +79,10 @@ namespace Infrastructure
                 configuration.GetSection("GeminiSettings"));
             services.AddHttpClient<IAIService, AIService>();
             services.AddScoped<IReviewRepository, ReviewRepository>();
+            services.AddScoped<IReviewViolationRepository, ReviewViolationRepository>();
             services.AddScoped<IReviewService, ReviewService>();
 
+            services.AddHttpClient<IGeminiModerationService, GeminiModerationService>();
 
             return services;
         }
