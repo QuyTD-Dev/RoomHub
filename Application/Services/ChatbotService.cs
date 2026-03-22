@@ -31,7 +31,7 @@ namespace Application.Services
             {
                 // 1. Lấy dữ liệu phòng từ Database để làm ngữ cảnh
                 var rooms = await _roomService.GetAllRoomsAsync();
-                var roomContext = string.Join("\n", rooms.Select(r => 
+                var roomContext = string.Join("\n", rooms.Items.Select(r => 
                     $"- {r.Title}: {r.BasePrice:N0} VNĐ/tháng, diện tích {r.SurfaceArea}m2, loại: {r.RoomType}, tại {r.Address}. (Số tiện ích: {r.AmenityCount})"));
 
                 // 2. Xây dựng Prompt cho Gemini
