@@ -58,7 +58,7 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Rooms}/{action=Index}/{id?}");
+    pattern: "{controller=RoomPosts}/{action=Index}/{id?}");
 
 app.MapHub<Web.Hubs.ChatHub>("/chathub");
 

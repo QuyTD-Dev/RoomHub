@@ -117,44 +117,64 @@ public async Task<Room?> GetRoomDetailsByIdAsync(int id)
 /// <summary>
 /// Tìm kiếm phòng
 /// </summary>
-public async Task<IEnumerable<Room>> SearchAsync(string? keyword, string? province, Domain.Enums.RoomType? roomType = null)
-{
-    var query = _context.Rooms
-        .Include(r => r.Floor)
-            .ThenInclude(f => f.Building)
-        .Include(r => r.RoomAmenities)
-            .ThenInclude(ra => ra.Amenity)
-        .Include(r => r.RoomPhotos)
-        .Where(r => !r.IsDeleted && r.Status == Domain.Enums.RoomStatus.Active)
-        .AsQueryable();
+        public async Task<IEnumerable<Room>> SearchAsync(string? keyword, string? province, Domain.Enums.RoomType? roomType = null)
+        {
+            var query = BuildSearchBaseQuery(keyword, province, roomType);
+            return await query
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+        }
 
-    if (!string.IsNullOrWhiteSpace(keyword))
-    {
-        query = query.Where(r =>
-            EF.Functions.Collate(r.Title, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword) ||
-            (r.Description != null && EF.Functions.Collate(r.Description, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword)) ||
-            EF.Functions.Collate(r.Floor.Building.Name, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword) ||
-            EF.Functions.Collate(r.Floor.Building.Address, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword)
-        );
-    }
+        public async Task<(IEnumerable<Room> Items, int TotalCount)> PaginatedSearchAsync(string? keyword, string? province, Domain.Enums.RoomType? roomType, int pageIndex, int pageSize)
+        {
+            var query = BuildSearchBaseQuery(keyword, province, roomType);
+            
+            int totalCount = await query.CountAsync();
+            
+            var items = await query
+                .OrderByDescending(r => r.CreatedAt)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
-    if (!string.IsNullOrWhiteSpace(province))
-    {
-        query = query.Where(r =>
-            (r.Floor.Building.Province != null &&
-             EF.Functions.Collate(r.Floor.Building.Province, "SQL_Latin1_General_CP1_CI_AI").Contains(province)) ||
-            EF.Functions.Collate(r.Floor.Building.City, "SQL_Latin1_General_CP1_CI_AI").Contains(province)
-        );
-    }
+            return (items, totalCount);
+        }
 
-    if (roomType.HasValue)
-    {
-        query = query.Where(r => r.RoomType == roomType.Value);
-    }
+        private IQueryable<Room> BuildSearchBaseQuery(string? keyword, string? province, Domain.Enums.RoomType? roomType)
+        {
+            var query = _context.Rooms
+                .Include(r => r.Floor)
+                    .ThenInclude(f => f.Building)
+                .Include(r => r.RoomAmenities)
+                    .ThenInclude(ra => ra.Amenity)
+                .Include(r => r.RoomPhotos)
+                .Where(r => !r.IsDeleted && (r.Status == Domain.Enums.RoomStatus.Active || r.Status == Domain.Enums.RoomStatus.Available));
 
-    return await query
-        .OrderByDescending(r => r.CreatedAt)
-        .ToListAsync();
-}
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                query = query.Where(r =>
+                    EF.Functions.Collate(r.Title, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword) ||
+                    (r.Description != null && EF.Functions.Collate(r.Description, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword)) ||
+                    EF.Functions.Collate(r.Floor.Building.Name, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword) ||
+                    EF.Functions.Collate(r.Floor.Building.Address, "SQL_Latin1_General_CP1_CI_AI").Contains(keyword)
+                );
+            }
 
-}
+            if (!string.IsNullOrWhiteSpace(province))
+            {
+                query = query.Where(r =>
+                    (r.Floor.Building.Province != null &&
+                     EF.Functions.Collate(r.Floor.Building.Province, "SQL_Latin1_General_CP1_CI_AI").Contains(province)) ||
+                    EF.Functions.Collate(r.Floor.Building.City, "SQL_Latin1_General_CP1_CI_AI").Contains(province)
+                );
+            }
+
+            if (roomType.HasValue)
+            {
+                query = query.Where(r => r.RoomType == roomType.Value);
+            }
+
+            return query;
+        }
+    } // end class
+} // end namespace
