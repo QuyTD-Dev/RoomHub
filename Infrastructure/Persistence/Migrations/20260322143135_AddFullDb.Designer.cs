@@ -4,6 +4,7 @@ using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260322143135_AddFullDb")]
+    partial class AddFullDb
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -211,8 +214,8 @@ namespace Infrastructure.Persistence.Migrations
                         {
                             Id = "test-user-id-123",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "66ccc56a-a6cd-4d97-b63a-bb06c2e1766f",
-                            CreatedAt = new DateTime(2026, 3, 22, 15, 22, 47, 25, DateTimeKind.Utc).AddTicks(6133),
+                            ConcurrencyStamp = "3e19051c-e4f1-473c-91be-1e4c9b89f63b",
+                            CreatedAt = new DateTime(2026, 3, 22, 14, 31, 32, 240, DateTimeKind.Utc).AddTicks(9975),
                             Email = "owner@roomhub.com",
                             EmailConfirmed = true,
                             FullName = "Chủ Trọ Test",
@@ -225,7 +228,7 @@ namespace Infrastructure.Persistence.Migrations
                             PasswordHash = "AQAAAAEAACcQAAAAE...",
                             PhoneNumber = "0123456789",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "7ef8127a-6823-4140-a08c-6cdfc805b80a",
+                            SecurityStamp = "e22c0f74-bc17-45a5-a5b1-a85c39cf20ee",
                             TwoFactorEnabled = false,
                             UserName = "owner_test"
                         });
@@ -329,15 +332,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
-                    b.Property<decimal>("ElectricityPrice")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.Property<decimal>("GarbagePrice")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.Property<decimal>("InternetPrice")
-                        .HasColumnType("decimal(18, 2)");
-
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -370,9 +364,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
-                    b.Property<decimal>("WaterPrice")
-                        .HasColumnType("decimal(18, 2)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerId");
@@ -390,14 +381,10 @@ namespace Infrastructure.Persistence.Migrations
                             City = "Hồ Chí Minh",
                             CreatedAt = new DateTime(2026, 3, 9, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             District = "Quận 1",
-                            ElectricityPrice = 0m,
-                            GarbagePrice = 0m,
-                            InternetPrice = 0m,
                             IsDeleted = false,
                             Name = "Chung cư mini RoomHub",
                             OwnerId = "test-user-id-123",
-                            Ward = "Phường Bến Nghé",
-                            WaterPrice = 0m
+                            Ward = "Phường Bến Nghé"
                         });
                 });
 
@@ -554,6 +541,17 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("BuildingId");
 
                     b.ToTable("Floors", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            BuildingId = 1,
+                            CreatedAt = new DateTime(2026, 3, 9, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Tầng 1 (Trệt)",
+                            FloorNumber = 1,
+                            IsDeleted = false
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.Invoice", b =>
@@ -971,17 +969,8 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(1024)
                         .HasColumnType("nvarchar(1024)");
 
-                    b.Property<decimal?>("ElectricityPrice")
-                        .HasColumnType("decimal(18, 2)");
-
                     b.Property<int>("FloorId")
                         .HasColumnType("int");
-
-                    b.Property<decimal?>("GarbagePrice")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.Property<decimal?>("InternetPrice")
-                        .HasColumnType("decimal(18, 2)");
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
@@ -1028,9 +1017,6 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<decimal?>("WaterPrice")
-                        .HasColumnType("decimal(18, 2)");
 
                     b.HasKey("Id");
 
@@ -1082,6 +1068,18 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("AmenityId");
 
                     b.ToTable("RoomAmenities", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            RoomId = 1,
+                            AmenityId = 1
+                        },
+                        new
+                        {
+                            RoomId = 1,
+                            AmenityId = 2
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.RoomPhoto", b =>
@@ -1465,6 +1463,13 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("AspNetUserRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            UserId = "test-user-id-123",
+                            RoleId = "owner-role-id"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>

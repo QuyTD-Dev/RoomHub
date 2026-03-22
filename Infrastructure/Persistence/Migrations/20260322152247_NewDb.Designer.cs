@@ -4,6 +4,7 @@ using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260322152247_NewDb")]
+    partial class NewDb
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -554,6 +557,17 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("BuildingId");
 
                     b.ToTable("Floors", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            BuildingId = 1,
+                            CreatedAt = new DateTime(2026, 3, 9, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Tầng 1 (Trệt)",
+                            FloorNumber = 1,
+                            IsDeleted = false
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.Invoice", b =>
@@ -1082,6 +1096,18 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("AmenityId");
 
                     b.ToTable("RoomAmenities", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            RoomId = 1,
+                            AmenityId = 1
+                        },
+                        new
+                        {
+                            RoomId = 1,
+                            AmenityId = 2
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.RoomPhoto", b =>
@@ -1465,6 +1491,13 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("AspNetUserRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            UserId = "test-user-id-123",
+                            RoleId = "owner-role-id"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>

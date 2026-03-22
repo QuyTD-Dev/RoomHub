@@ -232,10 +232,42 @@
                                 </p>
                             </div>
                             <div class="p-1.5">
-                            <a href="/Profile/Index" class="flex items-center gap-2.5 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-primary rounded-xl transition-colors">
-    <span class="material-symbols-outlined text-[20px]">person</span>
-    Trang cá nhân
-</a>
+                                <a href="/Profile/Index" class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary rounded-lg transition-colors">
+                                    <span class="material-symbols-outlined text-[20px]">person</span>
+                                    Trang cá nhân
+                                </a>
+                                @if (!User.IsInRole("Tenant"))
+                                {
+                                    <a asp-controller="RoomPosts" asp-action="MyPosts" class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary rounded-lg transition-colors">
+                                        <span class="material-symbols-outlined text-[20px]">list</span>
+                                        Quản lý bài đăng
+                                    </a>
+                                }
+                                <a href="#" class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary rounded-lg transition-colors">
+                                    <span class="material-symbols-outlined text-[20px]">dashboard</span>
+                                    Quản lý hệ thống
+                                </a>
+                                @if (User.IsInRole("PropertyOwner"))
+                                {
+                                    <li>
+                                        <a href="@Url.Action("Index", "Buildings")" class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                                            <div class="flex items-center gap-2">
+                                                <span class="material-symbols-outlined text-[20px]">domain</span>
+                                                Quản lý Tòa nhà
+                                            </div>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="@Url.Action("Index", "Billing")" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                            <div class="flex items-center gap-2">
+                                                <span class="material-symbols-outlined text-[20px]">receipt_long</span> Chốt số & Tính tiền
+                                            </div>
+                                        </a>
+                                    </li>
+    
+                                    <li><hr class="border-gray-100 my-1"></li>
+                                }
+                            </div>
 
 @if (!User.IsInRole("Tenant"))
 {

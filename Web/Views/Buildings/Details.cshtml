@@ -1,0 +1,425 @@
+﻿@model Domain.Entities.Building
+@using Domain.Enums
+@{
+    ViewData["Title"] = "Lưới phòng " + Model.Name;
+}
+
+<div class="max-w-[1200px] mx-auto px-4 py-8">
+    <div class="flex items-center gap-4 mb-6">
+        <a href="@Url.Action("Index")" class="p-2 bg-white rounded-full hover:bg-gray-100 shadow-sm border border-gray-200 text-gray-500 transition-all">
+            <span class="material-symbols-outlined">arrow_back</span>
+        </a>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Quản lý Lưới phòng: @Model.Name</h1>
+            <p class="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                <span class="material-symbols-outlined text-[16px]">place</span> @Model.Address, @Model.District, @Model.City
+            </p>
+        </div>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-wrap gap-6 mb-8">
+        <div class="flex items-center gap-2 text-sm font-medium">
+            <div class="w-4 h-4 rounded bg-green-50 border border-green-200"></div> Phòng trống
+        </div>
+        <div class="flex items-center gap-2 text-sm font-medium">
+            <div class="w-4 h-4 rounded bg-blue-50 border border-blue-200"></div> Đang thuê
+        </div>
+        <div class="flex items-center gap-2 text-sm font-medium">
+            <div class="w-4 h-4 rounded bg-orange-50 border border-orange-200"></div> Đang bảo trì
+        </div>
+    </div>
+
+    <div class="space-y-6 flex flex-col-reverse">
+        @foreach (var floor in Model.Floors.OrderBy(f => f.FloorNumber))
+        {
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <div class="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
+                    <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-orange-500">layers</span>
+                        Tầng @floor.FloorNumber
+                    </h3>
+                    <span class="text-xs text-gray-400 font-medium">@floor.Rooms.Count phòng</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    @foreach (var room in floor.Rooms.OrderBy(r => r.RoomNumber))
+                    {
+                        // Xác định CSS dựa vào trạng thái phòng
+                        string bgClass = "bg-green-50 border-green-200";
+                        string titleColor = "text-green-800";
+                        string statusText = "Còn trống";
+                        string icon = "check_circle";
+
+                        if (room.Status == RoomStatus.Occupied)
+                        {
+                            bgClass = "bg-blue-50 border-blue-200";
+                            titleColor = "text-blue-800";
+                            statusText = "Đang thuê";
+                            icon = "person";
+                        }
+                        else if (room.Status == RoomStatus.UnderMaintenance) // Sửa chữ Maintenance thành UnderMaintenance
+                        {
+                            bgClass = "bg-orange-50 border-orange-200";
+                            titleColor = "text-orange-800";
+                            statusText = "Bảo trì";
+                            icon = "build";
+                        }
+
+                        <div class="relative group p-4 rounded-xl border hover:shadow-md transition-all cursor-pointer @bgClass">
+                            <div class="flex justify-between items-start mb-3">
+                                <h4 class="text-xl font-black @titleColor">P.@room.RoomNumber</h4>
+                                <span class="bg-white/60 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider @titleColor border border-white">
+                                    @statusText
+                                </span>
+                            </div>
+                            
+                            @if (room.Status == RoomStatus.Available)
+                            {
+                                <div class="flex items-center gap-1.5 text-sm font-semibold text-green-600 mt-4">
+                                    <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                                    Thêm khách / Đăng tin
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-sm font-medium text-gray-700 truncate">Khách: ...</p>
+                                <div class="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                                    <span class="material-symbols-outlined text-[14px]">phone</span> Cập nhật sau
+                                </div>
+                            }
+
+                            <div class="absolute inset-0 bg-gray-900/80 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 backdrop-blur-sm">
+                                @if (room.Status == RoomStatus.Available)
+                                {
+                                    <button onclick="openConfigModal(@room.Id, '@room.RoomNumber', @room.BasePrice, @(room.SurfaceArea?.ToString("0.##") ?? "null"), @(room.ElectricityPrice?.ToString("0.##") ?? "null"), @(room.WaterPrice?.ToString("0.##") ?? "null"), @(room.InternetPrice?.ToString("0.##") ?? "null"), @(room.GarbagePrice?.ToString("0.##") ?? "null"))"
+                                            class="bg-slate-700 text-white px-4 py-1.5 rounded font-bold text-xs hover:bg-slate-600 transition-colors w-3/4 flex justify-center items-center gap-1">
+                                        <span class="material-symbols-outlined text-[14px]">settings</span> Cài đặt
+                                    </button>
+                                    <button class="bg-white text-gray-900 px-4 py-1.5 rounded font-bold text-xs hover:bg-orange-500 hover:text-white transition-colors w-3/4">Đăng lên Web</button>
+                                    <button onclick="openAddTenantModal(@room.Id, '@room.RoomNumber', @room.BasePrice)" class="bg-green-500 text-white px-4 py-1.5 rounded font-bold text-xs hover:bg-green-600 transition-colors w-3/4">Thêm khách luôn</button>
+                                }
+                                else
+                                {
+                                    <button class="bg-white text-gray-900 px-4 py-1.5 rounded font-bold text-xs hover:bg-blue-500 hover:text-white transition-colors w-3/4">Xem Hợp đồng</button>
+                                    <button class="bg-red-500 text-white px-4 py-1.5 rounded font-bold text-xs hover:bg-red-600 transition-colors w-3/4">Báo trả phòng</button>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+<div id="quickConfigModal" class="fixed inset-0 z-50 hidden bg-gray-900/60 backdrop-blur-sm items-center justify-center">
+    <div class="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl scale-95 opacity-0 transition-all duration-200" id="modalContent">
+        <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <div>
+                <h3 class="text-xl font-bold text-gray-900">Cài đặt Phòng <span id="m-roomName" class="text-orange-500"></span></h3>
+                <p class="text-xs text-gray-500 mt-1">Ghi đè giá thuê và dịch vụ riêng cho phòng này</p>
+            </div>
+            <button onclick="closeConfigModal()" class="text-gray-400 hover:text-gray-800 bg-white rounded-full p-1 border border-gray-200">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-6">
+            <input type="hidden" id="m-roomId" />
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Giá thuê (VNĐ/Tháng)</label>
+                    <input type="number" id="m-price" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:border-orange-500 outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Diện tích (m²)</label>
+                    <input type="number" id="m-area" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:border-orange-500 outline-none" />
+                </div>
+            </div>
+
+            <div class="p-4 rounded-xl border border-blue-100 bg-blue-50/30">
+                <div class="flex items-center justify-between mb-4">
+                    <label class="text-sm font-bold text-gray-800 flex items-center gap-1">
+                        <span class="material-symbols-outlined text-blue-600 text-[18px]">water_drop</span>
+                        Bảng giá Dịch vụ
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="m-useBuildingUtils" onchange="toggleUtilities()" class="w-4 h-4 text-orange-500 rounded border-gray-300" checked />
+                        <span class="text-xs font-medium text-gray-600">Dùng giá chung của Tòa nhà</span>
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 opacity-50 pointer-events-none transition-opacity" id="m-utilGroup">
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-500 mb-1">Giá Điện (VNĐ)</label>
+                        <input type="number" id="m-elec" value="@Model.ElectricityPrice" class="w-full px-3 py-2 bg-white border border-gray-300 rounded text-sm outline-none" />
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-500 mb-1">Nước (VNĐ/Người)</label>
+                        <input type="number" id="m-water" value="@Model.WaterPrice" class="w-full px-3 py-2 bg-white border border-gray-300 rounded text-sm outline-none" />
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-500 mb-1">Internet (VNĐ)</label>
+                        <input type="number" id="m-internet" value="@Model.InternetPrice" class="w-full px-3 py-2 bg-white border border-gray-300 rounded text-sm outline-none" />
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-500 mb-1">Rác (VNĐ)</label>
+                        <input type="number" id="m-garbage" value="@Model.GarbagePrice" class="w-full px-3 py-2 bg-white border border-gray-300 rounded text-sm outline-none" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
+            <button onclick="closeConfigModal()" class="px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg">Hủy</button>
+            <button onclick="saveRoomConfig()" id="btn-saveConfig" class="bg-orange-500 text-white px-6 py-2 rounded-lg font-bold text-sm shadow-md hover:bg-orange-600 flex items-center gap-1">
+                Lưu cài đặt
+            </button>
+        </div>
+    </div>
+</div>
+<div id="addTenantModal" class="fixed inset-0 z-50 hidden bg-gray-900/60 backdrop-blur-sm items-center justify-center">
+    <div class="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl scale-95 opacity-0 transition-all duration-200" id="tenantModalContent">
+        <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-green-50">
+            <div>
+                <h3 class="text-xl font-bold text-green-800">Thêm khách vào Phòng <span id="t-roomName" class="text-green-900 font-black"></span></h3>
+                <p class="text-xs text-green-600 mt-1">Khởi tạo hợp đồng và chốt chỉ số điện nước đầu kỳ</p>
+            </div>
+            <button onclick="closeAddTenantModal()" class="text-gray-400 hover:text-gray-800 bg-white rounded-full p-1 border border-gray-200">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <div class="p-6">
+            <input type="hidden" id="t-roomId" />
+            
+            <div class="grid grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <h4 class="font-bold text-sm text-gray-900 border-b pb-2">1. Thông tin Khách thuê</h4>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Họ và tên <span class="text-red-500">*</span></label>
+                        <input type="text" id="t-name" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-green-500" placeholder="VD: Nguyễn Văn A" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Số điện thoại <span class="text-red-500">*</span></label>
+                        <input type="text" id="t-phone" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-green-500" placeholder="VD: 0901234567" />
+                        <p class="text-[10px] text-gray-500 mt-1">SĐT sẽ được dùng làm tài khoản mặc định.</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Số CCCD (Tùy chọn)</label>
+                        <input type="text" id="t-cccd" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-green-500" />
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h4 class="font-bold text-sm text-gray-900 border-b pb-2">2. Hợp đồng & Chỉ số đầu kỳ</h4>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Giá thuê/tháng</label>
+                            <input type="number" id="t-price" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none font-bold text-green-600" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Tiền cọc</label>
+                            <input type="number" id="t-deposit" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none" value="0" />
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Ngày bắt đầu ở <span class="text-red-500">*</span></label>
+                        <input type="date" id="t-date" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none" />
+                    </div>
+
+                    <div class="p-3 bg-orange-50 border border-orange-100 rounded-lg mt-4">
+                        <label class="block text-[11px] font-bold text-orange-800 mb-1">Số Điện đầu kỳ (Ghi trên đồng hồ)</label>
+                        <input type="number" id="t-elec" class="w-full px-3 py-1.5 bg-white border border-orange-200 rounded outline-none font-bold text-center" placeholder="Nhập số..." />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
+            <button onclick="closeAddTenantModal()" class="px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg">Hủy</button>
+            <button onclick="submitTenant()" id="btn-submitTenant" class="bg-green-500 text-white px-6 py-2 rounded-lg font-bold text-sm shadow-md hover:bg-green-600 flex items-center gap-1">
+                <span class="material-symbols-outlined text-[18px]">how_to_reg</span> Thêm Khách Mới
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const tenantModal = document.getElementById('addTenantModal');
+    const tenantModalContent = document.getElementById('tenantModalContent');
+
+    function openAddTenantModal(id, name, price) {
+        document.getElementById('t-roomId').value = id;
+        document.getElementById('t-roomName').innerText = name;
+        document.getElementById('t-price').value = price;
+        // Tự động lấy ngày hôm nay
+        document.getElementById('t-date').valueAsDate = new Date();
+
+        tenantModal.classList.remove('hidden');
+        tenantModal.classList.add('flex');
+        setTimeout(() => {
+            tenantModalContent.classList.remove('scale-95', 'opacity-0');
+            tenantModalContent.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    function closeAddTenantModal() {
+        tenantModalContent.classList.remove('scale-100', 'opacity-100');
+        tenantModalContent.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            tenantModal.classList.add('hidden');
+            tenantModal.classList.remove('flex');
+        }, 200);
+    }
+
+    async function submitTenant() {
+        const btn = document.getElementById('btn-submitTenant');
+        
+        // Validate cơ bản
+        const phone = document.getElementById('t-phone').value;
+        const name = document.getElementById('t-name').value;
+        const date = document.getElementById('t-date').value;
+        
+        if(!phone || !name || !date) {
+            alert("Vui lòng nhập đầy đủ Tên, Số điện thoại và Ngày bắt đầu!");
+            return;
+        }
+
+        btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-sm">sync</span> Đang xử lý...`;
+        btn.disabled = true;
+
+        const payload = {
+            RoomId: parseInt(document.getElementById('t-roomId').value),
+            FullName: name,
+            PhoneNumber: phone,
+            IdentityCard: document.getElementById('t-cccd').value,
+            RentalPrice: parseFloat(document.getElementById('t-price').value) || 0,
+            DepositAmount: parseFloat(document.getElementById('t-deposit').value) || 0,
+            StartDate: date,
+            InitialElec: parseFloat(document.getElementById('t-elec').value) || 0
+        };
+
+        try {
+            const response = await fetch('/Buildings/AddDirectTenant', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await response.json();
+            if(data.success) {
+                alert("Hoàn tất! Khách đã được thêm vào phòng.");
+                window.location.reload();
+            } else {
+                alert("Lỗi: " + data.message);
+            }
+        } catch (err) {
+            alert("Lỗi kết nối Server.");
+        } finally {
+            btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">how_to_reg</span> Thêm Khách Mới`;
+            btn.disabled = false;
+        }
+    }
+</script>
+
+@section Scripts {
+    <script>
+        const b_elec = @Model.ElectricityPrice;
+        const b_water = @Model.WaterPrice;
+        const b_internet = @Model.InternetPrice;
+        const b_garbage = @Model.GarbagePrice;
+
+        const modal = document.getElementById('quickConfigModal');
+        const modalContent = document.getElementById('modalContent');
+        const utilGroup = document.getElementById('m-utilGroup');
+        const useBuildingCheckbox = document.getElementById('m-useBuildingUtils');
+
+        function openConfigModal(id, name, price, area, elec, water, internet, garbage) {
+            document.getElementById('m-roomId').value = id;
+            document.getElementById('m-roomName').innerText = name;
+            document.getElementById('m-price').value = price;
+            document.getElementById('m-area').value = area || '';
+
+            // Nếu phòng có giá điện nước riêng (!= null) thì bỏ check và điền giá riêng
+            if (elec !== null || water !== null) {
+                useBuildingCheckbox.checked = false;
+                document.getElementById('m-elec').value = elec || 0;
+                document.getElementById('m-water').value = water || 0;
+                document.getElementById('m-internet').value = internet || 0;
+                document.getElementById('m-garbage').value = garbage || 0;
+            } else {
+                useBuildingCheckbox.checked = true;
+                document.getElementById('m-elec').value = b_elec;
+                document.getElementById('m-water').value = b_water;
+                document.getElementById('m-internet').value = b_internet;
+                document.getElementById('m-garbage').value = b_garbage;
+            }
+            
+            toggleUtilities();
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeConfigModal() {
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 200);
+        }
+
+        function toggleUtilities() {
+            if (useBuildingCheckbox.checked) {
+                utilGroup.classList.add('opacity-50', 'pointer-events-none');
+            } else {
+                utilGroup.classList.remove('opacity-50', 'pointer-events-none');
+            }
+        }
+
+        async function saveRoomConfig() {
+            const btn = document.getElementById('btn-saveConfig');
+            btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-sm">sync</span> Đang lưu...`;
+            btn.disabled = true;
+
+            const payload = {
+                RoomId: parseInt(document.getElementById('m-roomId').value),
+                BasePrice: parseFloat(document.getElementById('m-price').value) || 0,
+                SurfaceArea: parseFloat(document.getElementById('m-area').value) || null,
+                UseBuildingUtilities: useBuildingCheckbox.checked,
+                ElectricityPrice: parseFloat(document.getElementById('m-elec').value) || 0,
+                WaterPrice: parseFloat(document.getElementById('m-water').value) || 0,
+                InternetPrice: parseFloat(document.getElementById('m-internet').value) || 0,
+                GarbagePrice: parseFloat(document.getElementById('m-garbage').value) || 0
+            };
+
+            try {
+                const response = await fetch('/Buildings/UpdateRoomQuickConfig', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                if(data.success) {
+                    // Hiển thị trực tiếp giá mới lên thẻ phòng nếu muốn, hoặc đơn giản là Reload lại trang
+                    window.location.reload();
+                } else {
+                    alert("Lỗi: " + data.message);
+                }
+            } catch (err) {
+                alert("Lỗi kết nối Server.");
+            } finally {
+                btn.innerHTML = `Lưu cài đặt`;
+                btn.disabled = false;
+            }
+        }
+    </script>
+}

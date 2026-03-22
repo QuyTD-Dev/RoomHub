@@ -26,7 +26,11 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(b => b.Longitude).HasColumnType("decimal(9,6)");
             builder.Property(b => b.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
             builder.Property(b => b.IsDeleted).HasDefaultValue(false);
-
+            // Bổ sung các cấu hình Decimal này vào bên trong hàm Configure(EntityTypeBuilder<Building> builder)
+            builder.Property(b => b.ElectricityPrice).HasColumnType("decimal(18, 2)");
+            builder.Property(b => b.WaterPrice).HasColumnType("decimal(18, 2)");
+            builder.Property(b => b.InternetPrice).HasColumnType("decimal(18, 2)");
+            builder.Property(b => b.GarbagePrice).HasColumnType("decimal(18, 2)");
             builder.HasOne(b => b.Owner)
                 .WithMany(u => u.Buildings)
                 .HasForeignKey(b => b.OwnerId)

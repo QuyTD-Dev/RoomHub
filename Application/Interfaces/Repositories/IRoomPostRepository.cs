@@ -15,6 +15,7 @@ namespace Application.Interfaces.Repositories
         Task<IEnumerable<Floor>> GetFloorsByLandlordIdAsync(string landlordId);
         Task<IEnumerable<Amenity>> GetAllAmenitiesAsync();
 
+        Task<IEnumerable<Room>> GetUnpublishedRoomsByLandlordIdAsync(string landlordId);
         // Public browsing
         Task<IEnumerable<Room>> GetAvailableRoomsAsync();
         Task<Room?> GetRoomDetailsByIdAsync(int id);
