@@ -116,29 +116,28 @@ namespace Web.Controllers
                 if (room == null) return Json(new { success = false, message = "Phòng không hợp lệ." });
 
                 // 1. Kiểm tra Khách đã có tài khoản chưa dựa vào SĐT. Nếu chưa -> Tạo tài khoản Khách (Guest)
-                var tenantUser = await userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == request.PhoneNumber);
+                // 1. Kiểm tra Khách đã có tài khoản chưa dựa vào EMAIL (Khóa chính)
+                var tenantUser = await userManager.FindByEmailAsync(request.Email);
                 if (tenantUser == null)
                 {
                     tenantUser = new Domain.Entities.ApplicationUser
                     {
-                        UserName = request.PhoneNumber,
-                        Email = request.PhoneNumber + "@guest.roomhub.com",
-                        PhoneNumber = request.PhoneNumber,
-
-                        // [ĐÃ SỬA]: Mở khóa FullName để không bị lỗi NOT NULL của Database
+                        UserName = request.Email, // Bắt buộc dùng Email làm UserName
+                        Email = request.Email,
+                        PhoneNumber = request.PhoneNumber, // Vẫn lưu SĐT để chủ nhà liên hệ
                         FullName = request.FullName,
-
-                        // [BỔ SUNG]: Thêm Avatar mặc định đề phòng trường AvatarUrl trong DB của bạn cũng bắt buộc
                         AvatarUrl = "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(request.FullName)
                     };
 
-                    // [ĐÃ SỬA]: Cập nhật mật khẩu chuẩn Identity (Chữ hoa, số, ký tự đặc biệt)
                     var result = await userManager.CreateAsync(tenantUser, "Guest@123456A!");
                     if (!result.Succeeded)
                     {
                         string identityErrors = string.Join(", ", result.Errors.Select(e => e.Description));
                         return Json(new { success = false, message = "Lỗi tạo tài khoản: " + identityErrors });
                     }
+
+                    // (Tùy chọn) Gán luôn quyền Tenant cho khách này để họ có thể đăng nhập xài App
+                    // await userManager.AddToRoleAsync(tenantUser, "Tenant");
                 }
 
                 // 2. Đổi trạng thái Phòng thành Đang Thuê
@@ -216,6 +215,7 @@ namespace Web.Controllers
         public int RoomId { get; set; }
         public string FullName { get; set; } = null!;
         public string PhoneNumber { get; set; } = null!;
+        public string Email { get; set; } = null!;
         public string? IdentityCard { get; set; }
         public decimal RentalPrice { get; set; }
         public decimal DepositAmount { get; set; }

@@ -66,6 +66,37 @@ namespace Web.Controllers
                 return Json(new { success = false, message = detailedError });
             }
         }
+        // MÀN HÌNH DANH SÁCH HÓA ĐƠN
+        [HttpGet]
+        public async Task<IActionResult> Invoices(int? buildingId, int? month, int? year, Domain.Enums.InvoiceStatus? status)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+
+            ViewBag.Buildings = await _buildingService.GetMyBuildingsAsync(ownerId);
+            ViewBag.SelectedBuildingId = buildingId;
+            ViewBag.SelectedMonth = month ?? DateTime.Now.Month;
+            ViewBag.SelectedYear = year ?? DateTime.Now.Year;
+            ViewBag.SelectedStatus = status; // Trạng thái hiện tại
+
+            var invoices = await _invoiceService.GetInvoicesAsync(ownerId, buildingId, ViewBag.SelectedMonth, ViewBag.SelectedYear, status);
+            return View(invoices);
+        }
+
+        // API XÁC NHẬN ĐÃ THU TIỀN
+        [HttpPost]
+        public async Task<IActionResult> MarkAsPaid([FromBody] int invoiceId)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            try
+            {
+                await _invoiceService.MarkInvoiceAsPaidAsync(invoiceId, ownerId);
+                return Json(new { success = true, message = "Đã gạch nợ thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
     }
 
     // Class hứng dữ liệu JSON

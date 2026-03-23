@@ -3,6 +3,7 @@ using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
 using Domain.Entities;
 using Domain.Enums;
+using static Application.DTOs.Billing.InvoiceListViewModel;
 
 namespace Application.Services
 {
@@ -77,7 +78,7 @@ namespace Application.Services
                 var lastElec = lastReadings.FirstOrDefault(r => r.UtilityType == UtilityType.Electricity);
                 var lastWater = lastReadings.FirstOrDefault(r => r.UtilityType == UtilityType.Water);
 
-                decimal oldElec = lastElec?.NewIndex ?? 0;
+                decimal oldElec = input.OldElectricityIndex;
 
                 if (input.NewElectricityIndex < oldElec)
                 {
@@ -86,8 +87,6 @@ namespace Application.Services
 
                 // 1. Tính toán lượng tiêu thụ
                 decimal elecConsumed = input.NewElectricityIndex - oldElec;
-
-                // [ĐÃ SỬA]: Tiêu thụ nước bây giờ chính là "Số lượng người" chủ nhà nhập
                 decimal waterConsumed = input.WaterUsage;
 
                 // 2. Chốt giá áp dụng
@@ -147,6 +146,90 @@ namespace Application.Services
             }
 
             return await _invoiceRepo.SaveInvoicesAndReadingsAsync(newInvoices, newReadings);
+        }
+        public async Task<List<InvoiceListViewModel>> GetInvoicesAsync(string landlordId, int? buildingId, int? month, int? year, InvoiceStatus? status = null)
+        {
+            var invoices = await _invoiceRepo.GetInvoicesByLandlordAsync(landlordId, buildingId, month, year, status);
+            return invoices.Select(i => new InvoiceListViewModel
+            {
+                InvoiceId = i.Id,
+                RoomNumber = i.Contract.Room.RoomNumber,
+                TenantName = i.Contract.Tenant?.FullName ?? "Khách",
+                TenantEmail = i.Contract.Tenant?.Email ?? "Không có",
+                InvoiceDate = i.InvoiceDate,
+                TotalAmount = i.TotalAmount,
+                Status = i.Status,
+                PaymentProofPath = i.PaymentProofPath // Đẩy URL ảnh ra ngoài
+            }).ToList();
+        }
+
+        public async Task<bool> MarkInvoiceAsPaidAsync(int invoiceId, string landlordId)
+        {
+            var invoice = await _invoiceRepo.GetInvoiceByIdAsync(invoiceId);
+            if (invoice == null || invoice.Contract.OwnerId != landlordId)
+                throw new Exception("Hóa đơn không tồn tại hoặc bạn không có quyền!");
+
+            // Nếu đã thanh toán rồi thì không làm gì cả
+            if (invoice.Status == InvoiceStatus.Paid) return true;
+
+            invoice.Status = InvoiceStatus.Paid;
+            await _invoiceRepo.UpdateInvoiceAsync(invoice);
+
+            return true;
+        }
+        public async Task<List<InvoiceListViewModel>> GetTenantInvoicesAsync(string tenantId)
+        {
+            var invoices = await _invoiceRepo.GetInvoicesByTenantAsync(tenantId);
+            return invoices.Select(i => new InvoiceListViewModel
+            {
+                InvoiceId = i.Id,
+                RoomNumber = i.Contract.Room.RoomNumber,
+                InvoiceDate = i.InvoiceDate,
+                TotalAmount = i.TotalAmount,
+                Status = i.Status
+            }).ToList();
+        }
+
+        public async Task<InvoiceDetailViewModel> GetInvoiceDetailAsync(int invoiceId, string tenantId)
+        {
+            var invoice = await _invoiceRepo.GetInvoiceByIdAsync(invoiceId);
+            if (invoice == null || invoice.Contract.TenantId != tenantId)
+                throw new Exception("Hóa đơn không tồn tại hoặc không có quyền truy cập.");
+
+            return new InvoiceDetailViewModel
+            {
+                InvoiceId = invoice.Id,
+                Month = invoice.InvoiceDate.Month,
+                Year = invoice.InvoiceDate.Year,
+                RoomNumber = invoice.Contract.Room.RoomNumber,
+                TotalAmount = invoice.TotalAmount,
+                Status = invoice.Status,
+                // Sẽ map dữ liệu ngân hàng thật từ Owner ở Phase 3
+                OwnerAccountName = invoice.Contract.Owner.FullName?.ToUpper() ?? "NGUYEN VAN CHU NHA",
+                Items = invoice.InvoiceItems.Select(item => new InvoiceItemViewModel
+                {
+                    ItemType = item.ItemType,
+                    Description = item.Description,
+                    Amount = item.Amount
+                }).ToList()
+            };
+        }
+
+        public async Task<bool> SubmitPaymentProofAsync(int invoiceId, string tenantId, string proofUrl)
+        {
+            var invoice = await _invoiceRepo.GetInvoiceByIdAsync(invoiceId);
+            if (invoice == null || invoice.Contract.TenantId != tenantId) throw new Exception("Lỗi bảo mật.");
+
+            invoice.Status = InvoiceStatus.Pending; // Chuyển sang "Chờ duyệt"
+
+            // [ĐÃ SỬA]: Lưu URL ảnh chụp màn hình vào Database
+            if (!string.IsNullOrEmpty(proofUrl))
+            {
+                invoice.PaymentProofPath = proofUrl;
+            }
+
+            await _invoiceRepo.UpdateInvoiceAsync(invoice);
+            return true;
         }
     }
 }
