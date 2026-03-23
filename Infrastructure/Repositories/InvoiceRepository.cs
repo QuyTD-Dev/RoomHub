@@ -33,12 +33,14 @@ namespace Infrastructure.Repositories
         {
             var elec = await _context.UtilityReadings
                 .Where(u => u.ContractId == contractId && u.UtilityType == UtilityType.Electricity)
-                .OrderByDescending(u => u.ReadingDate)
+                // [ĐÃ SỬA]: Dùng Id để luôn lấy ra chính xác bản ghi chốt sổ cuối cùng
+                .OrderByDescending(u => u.Id)
                 .FirstOrDefaultAsync();
 
             var water = await _context.UtilityReadings
                 .Where(u => u.ContractId == contractId && u.UtilityType == UtilityType.Water)
-                .OrderByDescending(u => u.ReadingDate)
+                // [ĐÃ SỬA]
+                .OrderByDescending(u => u.Id)
                 .FirstOrDefaultAsync();
 
             var list = new List<UtilityReading>();
@@ -64,6 +66,51 @@ namespace Infrastructure.Repositories
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+        public async Task<List<Invoice>> GetInvoicesByLandlordAsync(string landlordId, int? buildingId, int? month, int? year, InvoiceStatus? status = null)
+        {
+            var query = _context.Invoices
+                .Include(i => i.Contract)
+                    .ThenInclude(c => c.Room)
+                        .ThenInclude(r => r.Floor)
+                .Include(i => i.Contract)
+                    .ThenInclude(c => c.Tenant)
+                .Where(i => i.Contract.OwnerId == landlordId);
+
+            if (buildingId.HasValue) query = query.Where(i => i.Contract.Room.Floor.BuildingId == buildingId.Value);
+            if (month.HasValue) query = query.Where(i => i.InvoiceDate.Month == month.Value);
+            if (year.HasValue) query = query.Where(i => i.InvoiceDate.Year == year.Value);
+
+            // [BỔ SUNG]: Lọc theo Trạng thái (Status)
+            if (status.HasValue) query = query.Where(i => i.Status == status.Value);
+
+            return await query.OrderByDescending(i => i.InvoiceDate).ToListAsync();
+        }
+
+        public async Task<Invoice?> GetInvoiceByIdAsync(int invoiceId)
+        {
+            return await _context.Invoices
+                .Include(i => i.Contract)
+                    .ThenInclude(c => c.Room)
+                .Include(i => i.Contract)
+                    .ThenInclude(c => c.Owner) // Lấy info chủ nhà để hiện tên lên QR
+                .Include(i => i.InvoiceItems) // Lấy bảng kê chi tiết
+                .FirstOrDefaultAsync(i => i.Id == invoiceId);
+        }
+
+        public async Task UpdateInvoiceAsync(Invoice invoice)
+        {
+            _context.Invoices.Update(invoice);
+            await _context.SaveChangesAsync();
+        }
+        public async Task<List<Invoice>> GetInvoicesByTenantAsync(string tenantId)
+        {
+            return await _context.Invoices
+                .Include(i => i.Contract)
+                    .ThenInclude(c => c.Room)
+                .Where(i => i.Contract.TenantId == tenantId)
+                .OrderByDescending(i => i.InvoiceDate)
+                .ToListAsync();
         }
     }
 }

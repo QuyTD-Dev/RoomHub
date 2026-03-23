@@ -96,7 +96,10 @@
                                 @room.RoomRentPrice.ToString("N0")
                             </td>
 
-                            <td class="p-3 text-center font-bold text-gray-400">@room.OldElectricityIndex</td>
+                            <td class="p-2 border-r border-orange-50 bg-white">
+                                <input type="number" class="calc-trigger w-full text-center font-bold text-gray-500 border border-gray-200 rounded px-1 py-1.5 focus:outline-none focus:ring-2 focus:ring-gray-400 shadow-inner"
+                                       data-type="old-elec" value="@room.OldElectricityIndex" placeholder="Số cũ" />
+                            </td>
                             <td class="p-2 border-x border-orange-50 bg-white">
                                 <input type="number" class="calc-trigger w-full text-center font-bold text-orange-600 border border-orange-200 rounded px-1 py-1.5 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-inner"
                                        data-type="elec" data-old="@room.OldElectricityIndex" placeholder="Gõ..." />
@@ -154,8 +157,10 @@
                 const fixedFees = rentPrice + internetPrice + garbagePrice;
 
                 // Xử lý Điện
-                const elecInput = tr.querySelector('input[data-type="elec"]');
-                const oldElec = parseFloat(elecInput.getAttribute('data-old'));
+                const oldElecInput = tr.querySelector('input[data-type="old-elec"]'); // Lấy ô nhập số cũ
+                const elecInput = tr.querySelector('input[data-type="elec"]');        // Lấy ô nhập số mới
+                
+                const oldElec = parseFloat(oldElecInput.value) || 0;
                 const newElec = parseFloat(elecInput.value) || oldElec;
 
                 // Xử lý Nước
@@ -200,10 +205,11 @@
             let hasError = false;
 
             rows.forEach(tr => {
+                const oldElecInput = tr.querySelector('input[data-type="old-elec"]');
                 const elecInput = tr.querySelector('input[data-type="elec"]');
                 const waterInput = tr.querySelector('input[data-type="water"]');
 
-                const oldElec = parseFloat(elecInput.getAttribute('data-old'));
+                const oldElec = parseFloat(oldElecInput.value) || 0;
                 const newElec = parseFloat(elecInput.value) || oldElec;
                 const waterUsage = parseFloat(waterInput.value) || 0;
 
@@ -215,6 +221,7 @@
                 readings.push({
                     RoomId: parseInt(tr.getAttribute('data-room-id')),
                     ContractId: parseInt(tr.getAttribute('data-contract-id')),
+                    OldElectricityIndex: oldElec, // [GỬI SỐ CŨ XUỐNG SERVER]
                     NewElectricityIndex: newElec,
                     WaterUsage: waterUsage,
                     Month: parseInt(document.querySelector('select[name="month"]').value),
@@ -279,7 +286,7 @@
                 const tenantName = pTags[1].innerText;
                 
                 const rentPrice = tr.getAttribute('data-rent-price');
-                const oldElec = tr.querySelector('input[data-type="elec"]').getAttribute('data-old');
+                const oldElec = tr.querySelector('input[data-type="old-elec"]').value || "0";
                 const newElec = tr.querySelector('input[data-type="elec"]').value || oldElec;
                 const elecUsage = tr.querySelector('.result-elec').innerText;
                 const waterUsage = tr.querySelector('input[data-type="water"]').value || "0";

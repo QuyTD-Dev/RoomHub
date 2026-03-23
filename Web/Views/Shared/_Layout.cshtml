@@ -95,218 +95,228 @@
     </aside>
 
     <header class="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div class="max-w-[1440px] mx-auto px-4 h-16 flex items-center gap-3">
+    <div class="max-w-[1440px] mx-auto px-4 h-16 flex items-center gap-3">
 
-            @* Nhóm Logo + Menu Trigger *@
-            <div class="flex items-center gap-2 flex-shrink-0">
-                <button id="mega-menu-btn"
-                        class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                        aria-label="Mở menu danh mục">
-                    <span class="material-symbols-outlined text-2xl text-slate-600 dark:text-slate-300">menu</span>
-                </button>
-                <a asp-controller="RoomPosts" asp-action="Index" class="text-primary text-2xl font-bold tracking-tight">RoomHub</a>
-            </div>
+        @* Nhóm Logo + Menu Trigger *@
+        <div class="flex items-center gap-2 flex-shrink-0">
+            <button id="mega-menu-btn"
+                    class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    aria-label="Mở menu danh mục">
+                <span class="material-symbols-outlined text-2xl text-slate-600 dark:text-slate-300">menu</span>
+            </button>
+            <a asp-controller="RoomPosts" asp-action="Index" class="text-primary text-2xl font-bold tracking-tight">RoomHub</a>
+        </div>
 
-            @* Location Picker *@
-            <div class="relative hidden md:block flex-shrink-0">
-                <button id="location-btn"
-                        class="flex items-center gap-1.5 px-3 py-1.5 border border-primary/40 bg-orange-50/60 dark:bg-orange-900/10 rounded-full text-sm font-medium whitespace-nowrap hover:bg-orange-100/80 transition-colors">
-                    <span class="material-symbols-outlined text-primary" style="font-size:18px">location_on</span>
-                    <span id="location-label">Toàn quốc</span>
-                    <span class="material-symbols-outlined text-slate-400" style="font-size:16px">expand_more</span>
-                </button>
-                <input type="hidden" id="location-hidden-input" name="province" value="" />
+        @* Location Picker *@
+        <div class="relative hidden md:block flex-shrink-0">
+            <button id="location-btn"
+                    class="flex items-center gap-1.5 px-3 py-1.5 border border-primary/40 bg-orange-50/60 dark:bg-orange-900/10 rounded-full text-sm font-medium whitespace-nowrap hover:bg-orange-100/80 transition-colors">
+                <span class="material-symbols-outlined text-primary" style="font-size:18px">location_on</span>
+                <span id="location-label">Toàn quốc</span>
+                <span class="material-symbols-outlined text-slate-400" style="font-size:16px">expand_more</span>
+            </button>
+            <input type="hidden" id="location-hidden-input" name="province" value="" />
 
-                @* Location Dropdown Panel *@
-                <div id="location-dropdown"
-                     class="absolute left-0 top-[calc(100%+6px)] w-72 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 z-[200] opacity-0 invisible scale-95 pointer-events-none transition-all duration-200 origin-top-left">
-                    <div class="p-3 border-b border-slate-100 dark:border-slate-700">
-                        <div class="relative">
-                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" style="font-size:18px">search</span>
-                            <input id="location-search-input" type="text"
-                                   placeholder="Tìm tỉnh/thành phố..."
-                                   class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                        </div>
-                    </div>
-                    <div class="p-2 max-h-72 overflow-y-auto space-y-0.5 custom-scrollbar">
-                        <button data-province="" class="w-full text-left px-3 py-2 text-sm rounded-lg font-semibold text-primary hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors">
-                            🌐 Toàn quốc
-                        </button>
-                        <div class="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
-                        @{
-                            var provinces = new[]
-                            {
-                                "An Giang","Bà Rịa - Vũng Tàu","Bắc Giang","Bắc Kạn","Bạc Liêu",
-                                "Bắc Ninh","Bến Tre","Bình Định","Bình Dương","Bình Phước",
-                                "Bình Thuận","Cà Mau","Cần Thơ","Cao Bằng","Đà Nẵng",
-                                "Đắk Lắk","Đắk Nông","Điện Biên","Đồng Nai","Đồng Tháp",
-                                "Gia Lai","Hà Giang","Hà Nam","Hà Nội","Hà Tĩnh",
-                                "Hải Dương","Hải Phòng","Hậu Giang","Hòa Bình","Hưng Yên",
-                                "Khánh Hòa","Kiên Giang","Kon Tum","Lai Châu","Lâm Đồng",
-                                "Lạng Sơn","Lào Cai","Long An","Nam Định","Nghệ An",
-                                "Ninh Bình","Ninh Thuận","Phú Thọ","Phú Yên","Quảng Bình",
-                                "Quảng Nam","Quảng Ngãi","Quảng Ninh","Quảng Trị","Sóc Trăng",
-                                "Sơn La","Tây Ninh","Thái Bình","Thái Nguyên","Thanh Hóa",
-                                "Thừa Thiên Huế","Tiền Giang","TP. Hồ Chí Minh","Trà Vinh","Tuyên Quang",
-                                "Vĩnh Long","Vĩnh Phúc","Yên Bái"
-                            };
-                        }
-                        @foreach (var p in provinces)
-                        {
-                            <button data-province="@p" class="w-full text-left px-3 py-2 text-sm rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors">
-                                @p
-                            </button>
-                        }
+            @* Location Dropdown Panel *@
+            <div id="location-dropdown"
+                 class="absolute left-0 top-[calc(100%+6px)] w-72 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 z-[200] opacity-0 invisible scale-95 pointer-events-none transition-all duration-200 origin-top-left">
+                <div class="p-3 border-b border-slate-100 dark:border-slate-700">
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" style="font-size:18px">search</span>
+                        <input id="location-search-input" type="text"
+                               placeholder="Tìm tỉnh/thành phố..."
+                               class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" />
                     </div>
                 </div>
-            </div>
-
-            @* Search Bar *@
-            <form id="header-search-form"
-                  asp-controller="RoomPosts" asp-action="Index"
-                  method="get"
-                  class="flex-1 max-w-2xl relative">
-                <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                    <span class="material-symbols-outlined text-slate-400" style="font-size:20px">search</span>
-                </div>
-                <input id="header-search-input"
-                       name="q"
-                       type="text"
-                       value="@Context.Request.Query["q"]"
-                       autocomplete="off"
-                       class="w-full pl-11 pr-14 py-2.5 bg-slate-100 dark:bg-slate-800 border border-transparent rounded-full text-sm focus:outline-none focus:border-transparent focus:ring-2 focus:ring-primary/60 focus:bg-white dark:focus:bg-slate-700 transition-all placeholder:text-slate-400"
-                       placeholder="Tìm kiếm phòng trọ, căn hộ, địa điểm..." />
-                @* province hidden sync from dropdown *@
-                <input type="hidden" name="province" id="search-province-sync" value="@Context.Request.Query["province"]" />
-                <button type="submit"
-                        class="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center hover:bg-orange-600 active:scale-95 transition">
-                    <span class="material-symbols-outlined" style="font-size:18px">search</span>
-                </button>
-            </form>
-
-            <div class="flex items-center gap-2 lg:gap-4">
-                <div class="flex items-center gap-1 md:gap-3 px-2 border-r border-slate-200">
-                    @if (User.Identity.IsAuthenticated && (User.IsInRole("Tenant") || User.IsInRole("PropertyOwner")))
-                    {
-                        <a asp-controller="Favorite" asp-action="Index" class="p-2 text-slate-700 hover:text-red-500 transition" title="Danh sách yêu thích">
-                            <span class="material-symbols-outlined text-2xl">favorite</span>
-                        </a>
-                    }
-                    @if (User.Identity.IsAuthenticated)
-                    {
-                        <a asp-controller="Chat" asp-action="Index" class="p-2 text-slate-700 hover:text-primary transition" title="Tin nhắn">
-                            <span class="material-symbols-outlined text-2xl">chat</span>
-                        </a>
-                    }
-                    <button class="p-2 text-slate-700 hover:text-primary transition">
-                        <span class="material-symbols-outlined text-2xl">notifications</span>
+                <div class="p-2 max-h-72 overflow-y-auto space-y-0.5 custom-scrollbar">
+                    <button data-province="" class="w-full text-left px-3 py-2 text-sm rounded-lg font-semibold text-primary hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors">
+                        🌐 Toàn quốc
                     </button>
+                    <div class="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
+                    @{
+                        var provinces = new[]
+                        {
+                            "An Giang","Bà Rịa - Vũng Tàu","Bắc Giang","Bắc Kạn","Bạc Liêu",
+                            "Bắc Ninh","Bến Tre","Bình Định","Bình Dương","Bình Phước",
+                            "Bình Thuận","Cà Mau","Cần Thơ","Cao Bằng","Đà Nẵng",
+                            "Đắk Lắk","Đắk Nông","Điện Biên","Đồng Nai","Đồng Tháp",
+                            "Gia Lai","Hà Giang","Hà Nam","Hà Nội","Hà Tĩnh",
+                            "Hải Dương","Hải Phòng","Hậu Giang","Hòa Bình","Hưng Yên",
+                            "Khánh Hòa","Kiên Giang","Kon Tum","Lai Châu","Lâm Đồng",
+                            "Lạng Sơn","Lào Cai","Long An","Nam Định","Nghệ An",
+                            "Ninh Bình","Ninh Thuận","Phú Thọ","Phú Yên","Quảng Bình",
+                            "Quảng Nam","Quảng Ngãi","Quảng Ninh","Quảng Trị","Sóc Trăng",
+                            "Sơn La","Tây Ninh","Thái Bình","Thái Nguyên","Thanh Hóa",
+                            "Thừa Thiên Huế","Tiền Giang","TP. Hồ Chí Minh","Trà Vinh","Tuyên Quang",
+                            "Vĩnh Long","Vĩnh Phúc","Yên Bái"
+                        };
+                    }
+                    @foreach (var p in provinces)
+                    {
+                        <button data-province="@p" class="w-full text-left px-3 py-2 text-sm rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors">
+                            @p
+                        </button>
+                    }
                 </div>
+            </div>
+        </div>
 
-                @* NÚT ĐĂNG TIN: chỉ hiện với Owner/Admin *@
-                @if (User.Identity.IsAuthenticated && !User.IsInRole("Tenant"))
+        @* Search Bar *@
+        <form id="header-search-form"
+              asp-controller="RoomPosts" asp-action="Index"
+              method="get"
+              class="flex-1 max-w-2xl relative">
+            <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                <span class="material-symbols-outlined text-slate-400" style="font-size:20px">search</span>
+            </div>
+            <input id="header-search-input"
+                   name="q"
+                   type="text"
+                   value="@Context.Request.Query["q"]"
+                   autocomplete="off"
+                   class="w-full pl-11 pr-14 py-2.5 bg-slate-100 dark:bg-slate-800 border border-transparent rounded-full text-sm focus:outline-none focus:border-transparent focus:ring-2 focus:ring-primary/60 focus:bg-white dark:focus:bg-slate-700 transition-all placeholder:text-slate-400"
+                   placeholder="Tìm kiếm phòng trọ, căn hộ, địa điểm..." />
+            @* province hidden sync from dropdown *@
+            <input type="hidden" name="province" id="search-province-sync" value="@Context.Request.Query["province"]" />
+            <button type="submit"
+                    class="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center hover:bg-orange-600 active:scale-95 transition">
+                <span class="material-symbols-outlined" style="font-size:18px">search</span>
+            </button>
+        </form>
+
+        <div class="flex items-center gap-2 lg:gap-4">
+            <div class="flex items-center gap-1 md:gap-3 px-2 border-r border-slate-200">
+                @if (User.Identity.IsAuthenticated && (User.IsInRole("Tenant") || User.IsInRole("PropertyOwner")))
                 {
-                    <a asp-controller="RoomPosts" asp-action="Create"
-                       class="hidden sm:inline-flex items-center gap-1.5 bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-orange-600 transition whitespace-nowrap">
-                        <span class="material-symbols-outlined" style="font-size:16px">add</span>
-                        Đăng tin
+                    <a asp-controller="Favorite" asp-action="Index" class="p-2 text-slate-700 hover:text-red-500 transition" title="Danh sách yêu thích">
+                        <span class="material-symbols-outlined text-2xl">favorite</span>
                     </a>
                 }
-
-                @* AVATAR / LOGIN *@
                 @if (User.Identity.IsAuthenticated)
                 {
-                    <div class="relative group">
-                        <button class="flex items-center gap-1 p-0.5 pl-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full cursor-pointer transition-colors" title="Hồ sơ cá nhân">
-                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center text-white text-sm font-bold shadow-sm">
-                                @(User.Identity.Name?.Substring(0, 1).ToUpper() ?? "U")
-                            </div>
-                            <span class="material-symbols-outlined text-slate-400 text-base transition-transform duration-200 group-hover:rotate-180">expand_more</span>
-                        </button>
+                    <a asp-controller="Chat" asp-action="Index" class="p-2 text-slate-700 hover:text-primary transition" title="Tin nhắn">
+                        <span class="material-symbols-outlined text-2xl">chat</span>
+                    </a>
+                }
+                <button class="p-2 text-slate-700 hover:text-primary transition">
+                    <span class="material-symbols-outlined text-2xl">notifications</span>
+                </button>
+            </div>
 
-                        <div class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                            <div class="p-3 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-orange-50 to-white dark:from-slate-800 dark:to-slate-800">
-                                <p class="text-sm font-bold text-slate-800 dark:text-white truncate">@User.Identity.Name</p>
-                                <p class="text-xs text-slate-500 mt-0.5">
-                                    @(User.IsInRole("PropertyOwner") ? "Property Owner" : (User.IsInRole("Tenant") ? "Tenant" : "Administrator"))
-                                </p>
-                            </div>
-                            <div class="p-1.5">
-                                <a href="/Profile/Index" class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary rounded-lg transition-colors">
-                                    <span class="material-symbols-outlined text-[20px]">person</span>
-                                    Trang cá nhân
+            @* NÚT ĐĂNG TIN: chỉ hiện với Owner/Admin *@
+            @if (User.Identity.IsAuthenticated && !User.IsInRole("Tenant"))
+            {
+                <a asp-controller="RoomPosts" asp-action="Create"
+                   class="hidden sm:inline-flex items-center gap-1.5 bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-orange-600 transition whitespace-nowrap">
+                    <span class="material-symbols-outlined" style="font-size:16px">add</span>
+                    Đăng tin
+                </a>
+            }
+
+            @* AVATAR / LOGIN *@
+            @if (User.Identity.IsAuthenticated)
+            {
+                <div class="relative group">
+                    <button class="flex items-center gap-1 p-0.5 pl-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full cursor-pointer transition-colors" title="Hồ sơ cá nhân">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                            @(User.Identity.Name?.Substring(0, 1).ToUpper() ?? "U")
+                        </div>
+                        <span class="material-symbols-outlined text-slate-400 text-base transition-transform duration-200 group-hover:rotate-180">expand_more</span>
+                    </button>
+
+                    <div class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                        <div class="p-3 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-orange-50 to-white dark:from-slate-800 dark:to-slate-800">
+                            <p class="text-sm font-bold text-slate-800 dark:text-white truncate">@User.Identity.Name</p>
+                            <p class="text-xs text-slate-500 mt-0.5">
+                                @(User.IsInRole("PropertyOwner") ? "Property Owner" : (User.IsInRole("Tenant") ? "Tenant" : "Administrator"))
+                            </p>
+                        </div>
+                        
+                        @* KHOẢNG Div MENU CHÍNH - ĐÃ FIX CHUẨN HTML *@
+                        <div class="p-1.5">
+                            <a href="/Profile/Index" class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary rounded-lg transition-colors">
+                                <span class="material-symbols-outlined text-[20px]">person</span>
+                                Trang cá nhân
+                            </a>
+
+                            @if (!User.IsInRole("Tenant"))
+                            {
+                                <a asp-controller="RoomPosts" asp-action="MyPosts" class="flex items-center gap-2.5 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-primary rounded-xl transition-colors">
+                                    <span class="material-symbols-outlined text-[20px]">list_alt</span>
+                                    Quản lý bài đăng
                                 </a>
-                                @if (!User.IsInRole("Tenant"))
-                                {
-                                    <a asp-controller="RoomPosts" asp-action="MyPosts" class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary rounded-lg transition-colors">
-                                        <span class="material-symbols-outlined text-[20px]">list</span>
-                                        Quản lý bài đăng
-                                    </a>
-                                }
-                                <a href="#" class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-primary rounded-lg transition-colors">
+                            }
+
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <a asp-controller="Admin" asp-action="Index" class="flex items-center gap-2.5 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-primary rounded-xl transition-colors">
                                     <span class="material-symbols-outlined text-[20px]">dashboard</span>
                                     Quản lý hệ thống
                                 </a>
-                                @if (User.IsInRole("PropertyOwner"))
-                                {
-                                    <li>
-                                        <a href="@Url.Action("Index", "Buildings")" class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
-                                            <div class="flex items-center gap-2">
-                                                <span class="material-symbols-outlined text-[20px]">domain</span>
-                                                Quản lý Tòa nhà
-                                            </div>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="@Url.Action("Index", "Billing")" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
-                                            <div class="flex items-center gap-2">
-                                                <span class="material-symbols-outlined text-[20px]">receipt_long</span> Chốt số & Tính tiền
-                                            </div>
-                                        </a>
-                                    </li>
-    
-                                    <li><hr class="border-gray-100 my-1"></li>
-                                }
-                            </div>
+                            }
 
-@if (!User.IsInRole("Tenant"))
-{
-    <a asp-controller="RoomPosts" asp-action="MyPosts" class="flex items-center gap-2.5 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-primary rounded-xl transition-colors">
-        <span class="material-symbols-outlined text-[20px]">list_alt</span>
-        Quản lý bài đăng
-    </a>
-}
+                            @if (User.IsInRole("PropertyOwner"))
+                            {
+                                <li>
+                                    <a href="@Url.Action("Index", "Buildings")" class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                                        <div class="flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-[20px]">domain</span>
+                                            Quản lý Tòa nhà
+                                        </div>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("Index", "Billing")" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                        <div class="flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-[20px]">receipt_long</span> Chốt số & Tính tiền
+                                        </div>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="@Url.Action("Invoices", "Billing")" class="block px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-600 transition-colors">
+                                        <div class="flex items-center gap-2">
+                                            <span class="material-symbols-outlined text-[20px]">payments</span> Quản lý Hóa đơn
+                                        </div>
+                                    </a>
+                                </li>
+                                <li><hr class="border-gray-100 my-1"></li>
+                            }
+                            @if (User.IsInRole("Tenant"))
+                {
 
-@if (User.IsInRole("Admin"))
-{
-    <a asp-controller="Admin" asp-action="Index" class="flex items-center gap-2.5 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-primary rounded-xl transition-colors">
-        <span class="material-symbols-outlined text-[20px]">dashboard</span>
-        Quản lý hệ thống
-    </a>
-}
-</div>
-                            <div class="p-1.5 border-t border-slate-100 dark:border-slate-700">
-                                <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0 p-0">
-                                    <button type="submit" class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors text-left">
-                                        <span class="material-symbols-outlined text-[20px]">logout</span>
-                                        Đăng xuất
-                                    </button>
-                                </form>
+                    <li>
+                        <a href="@Url.Action("MyInvoices", "TenantBilling")" class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[20px]">receipt_long</span>
+                                Hóa đơn của tôi
                             </div>
+                        </a>
+                    </li>
+                }
+                        </div>
+
+                        <div class="p-1.5 border-t border-slate-100 dark:border-slate-700">
+                            <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0 p-0">
+                                <button type="submit" class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors text-left">
+                                    <span class="material-symbols-outlined text-[20px]">logout</span>
+                                    Đăng xuất
+                                </button>
+                            </form>
                         </div>
                     </div>
-                }
-                else
-                {
-                    <a asp-controller="Auth" asp-action="Login"
-                       class="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer text-slate-700 dark:text-slate-200">
-                        <span class="material-symbols-outlined" style="font-size:18px">login</span>
-                        Đăng nhập
-                    </a>
-                }
-            </div>
+                </div>
+            }
+            else
+            {
+                <a asp-controller="Auth" asp-action="Login"
+                   class="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer text-slate-700 dark:text-slate-200">
+                    <span class="material-symbols-outlined" style="font-size:18px">login</span>
+                    Đăng nhập
+                </a>
+            }
         </div>
-    </header>
+    </div>
+</header>
 
     @RenderBody()
 

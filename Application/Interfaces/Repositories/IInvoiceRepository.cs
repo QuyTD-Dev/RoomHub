@@ -10,5 +10,9 @@ namespace Application.Interfaces.Repositories
         Task<List<UtilityReading>> GetLastUtilityReadingsAsync(int contractId);
 
         Task<bool> SaveInvoicesAndReadingsAsync(List<Invoice> invoices, List<UtilityReading> readings);
+        Task<List<Invoice>> GetInvoicesByLandlordAsync(string landlordId, int? buildingId, int? month, int? year, Domain.Enums.InvoiceStatus? status = null);
+        Task<Invoice?> GetInvoiceByIdAsync(int invoiceId);
+        Task UpdateInvoiceAsync(Invoice invoice);
+        Task<List<Invoice>> GetInvoicesByTenantAsync(string tenantId);
     }
 }

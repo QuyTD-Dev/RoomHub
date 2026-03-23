@@ -5,6 +5,7 @@
     {
         public int RoomId { get; set; }
         public int ContractId { get; set; }
+        public decimal OldElectricityIndex { get; set; }
         public decimal NewElectricityIndex { get; set; }
 
         // [ĐÃ SỬA]: Thay vì NewWaterIndex, ta dùng WaterUsage để biểu diễn "Số người"
