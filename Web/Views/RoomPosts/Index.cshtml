@@ -2,17 +2,72 @@
 @model Application.DTOs.RoomPosts.PaginatedList<Application.DTOs.RoomPosts.RoomListViewModel>
 @{
     ViewData["Title"] = "Property Marketplace";
-    // Lấy thông tin user hiện tại để check logic ẩn/hiện nút tim
     var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-    var isOwner = User.IsInRole("PropertyOwner"); // Thay "PropertyOwner" bằng tên role thực tế trong DB của bạn
-    // Search filter state from controller
+    var isOwner = User.IsInRole("PropertyOwner");
     var isSearching = (bool)(ViewBag.isSearching ?? false);
     var searchQuery = (string?)ViewBag.searchQuery;
     var province = (string?)ViewBag.province;
+    var currentRoomType = (Domain.Enums.RoomType?)ViewBag.roomType;
+    var currentMinPrice = (decimal?)ViewBag.minPrice;
+    var currentMaxPrice = (decimal?)ViewBag.maxPrice;
+    var currentDistrict = (string?)ViewBag.district;
+    var currentSortBy = (string?)ViewBag.sortBy ?? "newest";
+
+    string BuildFilterUrl(string? q = null, string? prov = null, string? rt = null, string? minP = null, string? maxP = null, string? dist = null, string? sort = null, bool clearRoomType = false, bool clearPrice = false, bool clearProvince = false, bool clearDistrict = false)
+    {
+        var qs = new List<string>();
+        var qVal = q ?? searchQuery;
+        if (!string.IsNullOrWhiteSpace(qVal)) qs.Add($"q={Uri.EscapeDataString(qVal)}");
+        if (!clearProvince)
+        {
+            var provVal = prov ?? province;
+            if (!string.IsNullOrWhiteSpace(provVal)) qs.Add($"province={Uri.EscapeDataString(provVal)}");
+        }
+        if (!clearRoomType)
+        {
+            var rtVal = rt ?? currentRoomType?.ToString();
+            if (!string.IsNullOrWhiteSpace(rtVal)) qs.Add($"roomType={Uri.EscapeDataString(rtVal)}");
+        }
+        if (!clearPrice)
+        {
+            var minVal = minP ?? currentMinPrice?.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (!string.IsNullOrWhiteSpace(minVal)) qs.Add($"minPrice={minVal}");
+            var maxVal = maxP ?? currentMaxPrice?.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (!string.IsNullOrWhiteSpace(maxVal)) qs.Add($"maxPrice={maxVal}");
+        }
+        if (!clearDistrict)
+        {
+            var distVal = dist ?? currentDistrict;
+            if (!string.IsNullOrWhiteSpace(distVal)) qs.Add($"district={Uri.EscapeDataString(distVal)}");
+        }
+        var sortVal = sort ?? currentSortBy;
+        if (!string.IsNullOrWhiteSpace(sortVal) && sortVal != "newest") qs.Add($"sortBy={sortVal}");
+        return "/RoomPosts" + (qs.Any() ? "?" + string.Join("&", qs) : "");
+    }
+
+    var sortLabel = currentSortBy switch {
+        "price_asc" => "Giá tăng dần",
+        "price_desc" => "Giá giảm dần",
+        "area_asc" => "Diện tích tăng",
+        "area_desc" => "Diện tích giảm",
+        _ => "Mới nhất"
+    };
+
+    var roomTypeIcons = new[] {
+        (Domain.Enums.RoomType.Apartment, "apartment", "Căn hộ"),
+        (Domain.Enums.RoomType.Single, "meeting_room", "Phòng đơn"),
+        (Domain.Enums.RoomType.Double, "king_bed", "Phòng đôi"),
+        (Domain.Enums.RoomType.Studio, "weekend", "Studio"),
+        (Domain.Enums.RoomType.WholeHouse, "home", "Nhà nguyên căn"),
+        (Domain.Enums.RoomType.Shared, "group", "Phòng ghép"),
+        (Domain.Enums.RoomType.Duplex, "stairs", "Duplex"),
+        (Domain.Enums.RoomType.Other, "more_horiz", "Khác")
+    };
+
+    var regions = new[] { "Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Bình Dương", "Thừa Thiên Huế", "Cần Thơ", "Hải Phòng" };
 }
     <main class="max-w-7xl mx-auto px-4 py-4">
 
-        @* Banner kết quả tìm kiếm – chỉ hiện khi đang search *@
         @if (isSearching)
         {
             <div class="mb-4 flex items-center justify-between bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl px-4 py-3">
@@ -20,83 +75,190 @@
                     <span class="material-symbols-outlined text-primary" style="font-size:20px">search</span>
                     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">
                         Kết quả tìm kiếm
-                        @if (!string.IsNullOrWhiteSpace(searchQuery))
+                        @if (!string.IsNullOrWhiteSpace(searchQuery)) { <span> cho <strong class="text-primary">"@searchQuery"</strong></span> }
+                        @if (!string.IsNullOrWhiteSpace(province)) { <span> tại <strong class="text-primary">@province</strong></span> }
+                        @if (currentRoomType.HasValue) { <span> — <strong class="text-primary">@currentRoomType</strong></span> }
+                        @if (currentMinPrice.HasValue || currentMaxPrice.HasValue)
                         {
-                            <span> cho <strong class="text-primary">"@searchQuery"</strong></span>
-                        }
-                        @if (!string.IsNullOrWhiteSpace(province))
-                        {
-                            <span> tại <strong class="text-primary">@province</strong></span>
+                            <span> — Giá:
+                                @if (currentMinPrice.HasValue) { <span>từ <strong>@currentMinPrice?.ToString("N0")đ</strong></span> }
+                                @if (currentMaxPrice.HasValue) { <span>đến <strong>@currentMaxPrice?.ToString("N0")đ</strong></span> }
+                            </span>
                         }
                         <span class="text-slate-500"> — @Model.TotalItems phòng</span>
                     </span>
                 </div>
-                <a asp-action="Index" class="text-xs font-semibold text-slate-500 hover:text-primary flex items-center gap-1 whitespace-nowrap">
-                    <span class="material-symbols-outlined" style="font-size:16px">close</span>
-                    Xoá bộ lọc
+                <a href="/RoomPosts" class="text-xs font-semibold text-slate-500 hover:text-primary flex items-center gap-1 whitespace-nowrap">
+                    <span class="material-symbols-outlined" style="font-size:16px">close</span> Xoá bộ lọc
                 </a>
             </div>
         }
+
+        @* ===== FILTER BAR ===== *@
         <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 mb-6">
+            @* Row 1: Filter buttons *@
             <div class="flex items-center gap-3 overflow-x-auto pb-3 hide-scrollbar">
-                <button class="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium whitespace-nowrap">
-                    <span class="material-symbols-outlined text-lg">tune</span> Filter
+                <button id="btnAdvancedFilter"
+                        class="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium whitespace-nowrap hover:border-primary hover:text-primary transition">
+                    <span class="material-symbols-outlined text-lg">tune</span> Bộ lọc
                 </button>
-                <button class="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg text-sm font-medium whitespace-nowrap">
-                    Buy/Sell <span class="material-symbols-outlined text-xs">expand_more</span>
-                </button>
-                <button class="flex items-center gap-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-transparent rounded-lg text-sm font-medium whitespace-nowrap">
-                    Property Type <span class="material-symbols-outlined text-xs">expand_more</span>
-                </button>
-                <button class="flex items-center gap-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-transparent rounded-lg text-sm font-medium whitespace-nowrap">
-                    Price <span class="material-symbols-outlined text-xs">expand_more</span>
-                </button>
-                <button class="flex items-center gap-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-transparent rounded-lg text-sm font-medium whitespace-nowrap">
-                    Project <span class="material-symbols-outlined text-xs">expand_more</span>
-                </button>
-                <button class="flex items-center gap-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-transparent rounded-lg text-sm font-medium whitespace-nowrap">
-                    Posted By <span class="material-symbols-outlined text-xs">expand_more</span>
-                </button>
+
+                @* Loại phòng *@
+                <div class="relative" id="roomTypeDropdown">
+                    <button data-dropdown="roomTypeMenu"
+                            class="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition @(currentRoomType.HasValue ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-800 border border-transparent hover:border-primary hover:text-primary")">
+                        Loại phòng @(currentRoomType.HasValue ? $"({currentRoomType})" : "")
+                        <span class="material-symbols-outlined text-xs">expand_more</span>
+                    </button>
+                    <div id="roomTypeMenu" class="filter-dropdown hidden fixed bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-[9999] min-w-[200px] py-1">
+                        @foreach (Domain.Enums.RoomType rt in Enum.GetValues(typeof(Domain.Enums.RoomType)))
+                        {
+                            var isActive = currentRoomType.HasValue && currentRoomType.Value == rt;
+                            var displayAttr = rt.GetType().GetField(rt.ToString())?.GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.DisplayAttribute), false);
+                            var displayName = (displayAttr != null && displayAttr.Length > 0) ? ((System.ComponentModel.DataAnnotations.DisplayAttribute)displayAttr[0]).Name : rt.ToString();
+                            <a href="@BuildFilterUrl(rt: rt.ToString())"
+                               class="block px-4 py-2.5 text-sm hover:bg-orange-50 dark:hover:bg-slate-700 transition @(isActive ? "text-primary font-bold bg-orange-50" : "text-slate-700 dark:text-slate-300")">
+                                @displayName
+                            </a>
+                        }
+                        @if (currentRoomType.HasValue)
+                        {
+                            <div class="border-t border-slate-100 dark:border-slate-700 mt-1 pt-1">
+                                <a href="@BuildFilterUrl(clearRoomType: true)" class="block px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-medium">
+                                    <span class="material-symbols-outlined text-sm align-middle mr-1">close</span>Bỏ lọc loại phòng
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                @* Khoảng giá *@
+                <div class="relative" id="priceDropdown">
+                    <button data-dropdown="priceMenu"
+                            class="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition @(currentMinPrice.HasValue || currentMaxPrice.HasValue ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-800 border border-transparent hover:border-primary hover:text-primary")">
+                        Khoảng giá @(currentMinPrice.HasValue || currentMaxPrice.HasValue ? "✓" : "")
+                        <span class="material-symbols-outlined text-xs">expand_more</span>
+                    </button>
+                    <div id="priceMenu" class="filter-dropdown hidden fixed bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-[9999] min-w-[220px] py-1">
+                        <a href="@BuildFilterUrl(maxP: "3000000", clearPrice: true)" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-orange-50 transition">Dưới 3 triệu</a>
+                        <a href="@BuildFilterUrl(minP: "3000000", maxP: "5000000")" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-orange-50 transition">3 - 5 triệu</a>
+                        <a href="@BuildFilterUrl(minP: "5000000", maxP: "10000000")" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-orange-50 transition">5 - 10 triệu</a>
+                        <a href="@BuildFilterUrl(minP: "10000000", maxP: "20000000")" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-orange-50 transition">10 - 20 triệu</a>
+                        <a href="@BuildFilterUrl(minP: "20000000")" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-orange-50 transition">Trên 20 triệu</a>
+                        @if (currentMinPrice.HasValue || currentMaxPrice.HasValue)
+                        {
+                            <div class="border-t border-slate-100 mt-1 pt-1">
+                                <a href="@BuildFilterUrl(clearPrice: true)" class="block px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-medium">
+                                    <span class="material-symbols-outlined text-sm align-middle mr-1">close</span>Bỏ lọc giá
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                @* Sắp xếp *@
+                <div class="relative" id="sortDropdown">
+                    <button data-dropdown="sortMenu"
+                            class="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition @(currentSortBy != "newest" ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-800 border border-transparent hover:border-primary hover:text-primary")">
+                        <span class="material-symbols-outlined text-sm">sort</span> @sortLabel
+                        <span class="material-symbols-outlined text-xs">expand_more</span>
+                    </button>
+                    <div id="sortMenu" class="filter-dropdown hidden fixed bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-[9999] min-w-[200px] py-1">
+                        @{
+                            var sortOptions = new[] {
+                                ("newest", "Mới nhất", "schedule"),
+                                ("price_asc", "Giá tăng dần", "trending_up"),
+                                ("price_desc", "Giá giảm dần", "trending_down"),
+                                ("area_asc", "Diện tích tăng", "open_in_full"),
+                                ("area_desc", "Diện tích giảm", "close_fullscreen")
+                            };
+                        }
+                        @foreach (var (val, label, icon) in sortOptions)
+                        {
+                            var isActive = currentSortBy == val;
+                            <a href="@BuildFilterUrl(sort: val)"
+                               class="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-orange-50 transition @(isActive ? "text-primary font-bold bg-orange-50" : "text-slate-700 dark:text-slate-300")">
+                                <span class="material-symbols-outlined text-sm">@icon</span> @label
+                            </a>
+                        }
+                    </div>
+                </div>
+
                 <div class="h-6 w-px bg-slate-300 dark:bg-slate-700 mx-2"></div>
-                <button class="text-slate-500 text-sm font-medium hover:text-primary whitespace-nowrap px-2">Reset All</button>
+                <a href="/RoomPosts" class="text-slate-500 text-sm font-medium hover:text-primary whitespace-nowrap px-2 transition">Đặt lại</a>
             </div>
+
+            @* Advanced filter panel *@
+            <div id="advancedFilterPanel" class="hidden border-t border-slate-100 dark:border-slate-800 pt-4 mt-1">
+                <form method="get" action="/RoomPosts/Index" class="flex flex-wrap items-end gap-4">
+                    @if (!string.IsNullOrWhiteSpace(searchQuery)) { <input type="hidden" name="q" value="@searchQuery" /> }
+                    @if (currentRoomType.HasValue) { <input type="hidden" name="roomType" value="@currentRoomType" /> }
+                    @if (currentSortBy != "newest") { <input type="hidden" name="sortBy" value="@currentSortBy" /> }
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-500">Tỉnh/Thành phố</label>
+                        <input type="text" name="province" value="@province" placeholder="Ví dụ: Hồ Chí Minh"
+                               class="px-3 py-2 border border-slate-200 rounded-lg text-sm w-44 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-500">Quận/Huyện</label>
+                        <input type="text" name="district" value="@currentDistrict" placeholder="Ví dụ: Quận 1"
+                               class="px-3 py-2 border border-slate-200 rounded-lg text-sm w-44 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-500">Giá từ (VNĐ)</label>
+                        <input type="number" name="minPrice" value="@currentMinPrice" placeholder="0"
+                               class="px-3 py-2 border border-slate-200 rounded-lg text-sm w-36 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-xs font-semibold text-slate-500">Giá đến (VNĐ)</label>
+                        <input type="number" name="maxPrice" value="@currentMaxPrice" placeholder="99999999"
+                               class="px-3 py-2 border border-slate-200 rounded-lg text-sm w-36 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition" />
+                    </div>
+                    <button type="submit" class="px-5 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:opacity-90 transition flex items-center gap-1.5 shadow-sm">
+                        <span class="material-symbols-outlined text-sm">search</span> Lọc
+                    </button>
+                </form>
+            </div>
+
+            @* Row 2: Region quick filters *@
             <div class="flex items-center gap-2 py-3 border-t border-slate-100 dark:border-slate-800 overflow-x-auto hide-scrollbar">
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider mr-2">Regions:</span>
-                <button class="px-4 py-1.5 border border-slate-200 rounded-full text-sm whitespace-nowrap hover:border-primary hover:text-primary transition">Ho Chi Minh City</button>
-                <button class="px-4 py-1.5 border border-slate-200 rounded-full text-sm whitespace-nowrap hover:border-primary hover:text-primary transition">Binh Duong</button>
-                <button class="px-4 py-1.5 border border-slate-200 rounded-full text-sm whitespace-nowrap hover:border-primary hover:text-primary transition">Hanoi</button>
-                <button class="px-4 py-1.5 border border-slate-200 rounded-full text-sm whitespace-nowrap hover:border-primary hover:text-primary transition">Da Nang</button>
-                <button class="flex items-center gap-1 px-4 py-1.5 border border-slate-200 rounded-full text-sm whitespace-nowrap hover:border-primary hover:text-primary transition">
-                    <span class="material-symbols-outlined text-sm">my_location</span> Near me
-                </button>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider mr-2">Khu vực:</span>
+                @foreach (var name in regions)
+                {
+                    var isActive = !string.IsNullOrWhiteSpace(province) && province.Contains(name, StringComparison.OrdinalIgnoreCase);
+                    if (isActive)
+                    {
+                        <a href="@BuildFilterUrl(clearProvince: true)"
+                           class="px-4 py-1.5 border-2 border-primary rounded-full text-sm whitespace-nowrap bg-primary text-white font-semibold transition flex items-center gap-1">
+                            @name <span class="material-symbols-outlined text-xs">close</span>
+                        </a>
+                    }
+                    else
+                    {
+                        <a href="@BuildFilterUrl(prov: name)"
+                           class="px-4 py-1.5 border border-slate-200 rounded-full text-sm whitespace-nowrap hover:border-primary hover:text-primary transition">
+                            @name
+                        </a>
+                    }
+                }
             </div>
-            <div class="flex items-center gap-12 py-4 border-t border-slate-100 dark:border-slate-800 justify-start overflow-x-auto hide-scrollbar">
-                <button class="flex flex-col items-center gap-2 min-w-[80px] group">
-                    <div class="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-orange-50 group-hover:text-primary transition text-slate-600">
-                        <span class="material-symbols-outlined text-3xl">apartment</span>
-                    </div>
-                    <span class="text-xs font-semibold text-slate-600 group-hover:text-primary">Apartment</span>
-                </button>
-                <button class="flex flex-col items-center gap-2 min-w-[80px] group">
-                    <div class="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-orange-50 group-hover:text-primary transition text-slate-600">
-                        <span class="material-symbols-outlined text-3xl">home</span>
-                    </div>
-                    <span class="text-xs font-semibold text-slate-600 group-hover:text-primary">House</span>
-                </button>
-                <button class="flex flex-col items-center gap-2 min-w-[80px] group">
-                    <div class="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-orange-50 group-hover:text-primary transition text-slate-600">
-                        <span class="material-symbols-outlined text-3xl">landscape</span>
-                    </div>
-                    <span class="text-xs font-semibold text-slate-600 group-hover:text-primary">Land</span>
-                </button>
-                <button class="flex flex-col items-center gap-2 min-w-[80px] group">
-                    <div class="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-orange-50 group-hover:text-primary transition text-slate-600">
-                        <span class="material-symbols-outlined text-3xl">business_center</span>
-                    </div>
-                    <span class="text-xs font-semibold text-slate-600 group-hover:text-primary">Office</span>
-                </button>
+
+            @* Row 3: Room type icons *@
+            <div class="flex items-center gap-8 py-4 border-t border-slate-100 dark:border-slate-800 justify-start overflow-x-auto hide-scrollbar">
+                @foreach (var (rt, icon, label) in roomTypeIcons)
+                {
+                    var isActive = currentRoomType.HasValue && currentRoomType.Value == rt;
+                    var url = isActive ? BuildFilterUrl(clearRoomType: true) : BuildFilterUrl(rt: rt.ToString());
+                    <a href="@url" class="flex flex-col items-center gap-2 min-w-[72px] group">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center transition @(isActive ? "bg-primary text-white shadow-lg shadow-primary/30 scale-110" : "bg-slate-50 text-slate-600 group-hover:bg-orange-50 group-hover:text-primary")">
+                            <span class="material-symbols-outlined text-2xl">@icon</span>
+                        </div>
+                        <span class="text-xs font-semibold transition @(isActive ? "text-primary" : "text-slate-600 group-hover:text-primary")">@label</span>
+                    </a>
+                }
             </div>
         </div>
+
         <div class="grid grid-cols-12 gap-6">
             <div class="col-span-12 lg:col-span-8 space-y-6">
                 <section class="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm overflow-hidden border border-slate-100">
@@ -162,44 +324,44 @@
                                     </button>
                                 }
                                 @{
-                                        var badgeClass = item.Status switch
-                                        {
-                                            Domain.Enums.RoomStatus.Active => "bg-success",
-                                            Domain.Enums.RoomStatus.Hidden => "bg-secondary",
-                                            Domain.Enums.RoomStatus.Available => "bg-info text-dark",
-                                            Domain.Enums.RoomStatus.Occupied => "bg-primary",
-                                            _ => "bg-warning text-dark"
-                                        };
-                                    }
-                                    <span class="absolute top-2 left-2 @badgeClass text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wide">@item.Status</span>
-                                </div>
-                                <div class="flex-1 p-4 flex flex-col justify-between">
-                                    <div>
-                                        <h3 class="font-bold text-lg leading-snug group-hover:text-primary transition line-clamp-2 hover:underline">
-                                            <a asp-action="Details" asp-route-id="@item.Id">@item.Title</a>
-                                        </h3>
-                                        <div class="flex gap-4 mt-2 text-sm text-slate-500 dark:text-slate-400">
-                                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">meeting_room</span> @item.RoomNumber</span>
-                                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">straighten</span> @(item.SurfaceArea?.ToString("0.##") ?? "N/A") m²</span>
-                                            <span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">location_on</span> @item.Address</span>
-                                        </div>
+                                    var badgeClass = item.Status switch
+                                    {
+                                        Domain.Enums.RoomStatus.Active => "bg-success",
+                                        Domain.Enums.RoomStatus.Hidden => "bg-secondary",
+                                        Domain.Enums.RoomStatus.Available => "bg-info text-dark",
+                                        Domain.Enums.RoomStatus.Occupied => "bg-primary",
+                                        _ => "bg-warning text-dark"
+                                    };
+                                }
+                                <span class="absolute top-2 left-2 @badgeClass text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wide">@item.Status</span>
+                            </div>
+                            <div class="flex-1 p-4 flex flex-col justify-between">
+                                <div>
+                                    <h3 class="font-bold text-lg leading-snug group-hover:text-primary transition line-clamp-2 hover:underline">
+                                        <a asp-action="Details" asp-route-id="@item.Id">@item.Title</a>
+                                    </h3>
+                                    <div class="flex gap-4 mt-2 text-sm text-slate-500 dark:text-slate-400">
+                                        <span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">meeting_room</span> @item.RoomNumber</span>
+                                        <span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">straighten</span> @(item.SurfaceArea?.ToString("0.##") ?? "N/A") m²</span>
+                                        <span class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">location_on</span> @item.Address</span>
                                     </div>
-                                    <div class="flex justify-between items-end mt-4">
-                                        <div>
-                                            <p class="text-red-600 font-bold text-xl">@item.BasePrice.ToString("C")</p>
-                                            <p class="text-xs text-slate-400">Posted: @item.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")</p>
-                                        </div>
-                                        <div class="flex items-center gap-3">
-                                            <div class="flex items-center gap-2">
-                                                <div class="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
-                                                    <span class="material-symbols-outlined text-[14px]">check_circle</span>
-                                                </div>
-                                                <span class="text-xs font-medium text-slate-600 dark:text-slate-300">@item.AmenityCount Amenities</span>
+                                </div>
+                                <div class="flex justify-between items-end mt-4">
+                                    <div>
+                                        <p class="text-red-600 font-bold text-xl">@item.BasePrice.ToString("C")</p>
+                                        <p class="text-xs text-slate-400">Posted: @item.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")</p>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
+                                                <span class="material-symbols-outlined text-[14px]">check_circle</span>
                                             </div>
+                                            <span class="text-xs font-medium text-slate-600 dark:text-slate-300">@item.AmenityCount Amenities</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
                         }
                     }
                     else
@@ -226,55 +388,40 @@
                                 <span class="material-symbols-outlined text-4xl text-slate-300 mb-2">inbox</span>
                                 <h3 class="text-lg font-bold text-slate-700 dark:text-slate-200">No properties found</h3>
                                 <p class="text-slate-500 text-sm mt-1 mb-4">Currently there are no properties available.</p>
-                                <a asp-action="Create" class="inline-flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-lg text-sm font-bold shadow-sm hover:opacity-90 transition">
-                                    <span class="material-symbols-outlined text-sm">add</span> Post Ad
-                                </a>
                             </div>
                         }
                     }
                 </div>
 
-                @* Pagination UI *@
+                @* Pagination *@
                 @if (Model != null && Model.TotalPages > 1)
                 {
                     <div class="flex justify-center mt-8">
                         <nav class="inline-flex rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
                             @if (Model.HasPreviousPage)
                             {
-                                <a asp-action="Index" 
-                                   asp-route-page="@(Model.PageIndex - 1)" 
-                                   asp-route-q="@searchQuery" 
-                                   asp-route-province="@province" 
-                                   asp-route-roomType="@ViewBag.roomType"
-                                   class="px-4 py-2 border-r border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition flex items-center gap-1">
+                                <a asp-action="Index" asp-route-page="@(Model.PageIndex - 1)" asp-route-q="@searchQuery" asp-route-province="@province" asp-route-roomType="@ViewBag.roomType" asp-route-minPrice="@currentMinPrice" asp-route-maxPrice="@currentMaxPrice" asp-route-district="@currentDistrict" asp-route-sortBy="@currentSortBy"
+                                   class="px-4 py-2 border-r border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition flex items-center gap-1">
                                     <span class="material-symbols-outlined text-[18px]">chevron_left</span> Trước
                                 </a>
                             }
                             else
                             {
-                                <span class="px-4 py-2 border-r border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-300 dark:text-slate-600 cursor-not-allowed flex items-center gap-1">
+                                <span class="px-4 py-2 border-r border-slate-200 text-sm font-medium text-slate-300 cursor-not-allowed flex items-center gap-1">
                                     <span class="material-symbols-outlined text-[18px]">chevron_left</span> Trước
                                 </span>
                             }
-
-                            <div class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center">
-                                Trang @Model.PageIndex / @Model.TotalPages
-                            </div>
-
+                            <div class="px-4 py-2 text-sm font-medium text-slate-700 flex items-center">Trang @Model.PageIndex / @Model.TotalPages</div>
                             @if (Model.HasNextPage)
                             {
-                                <a asp-action="Index" 
-                                   asp-route-page="@(Model.PageIndex + 1)" 
-                                   asp-route-q="@searchQuery" 
-                                   asp-route-province="@province" 
-                                   asp-route-roomType="@ViewBag.roomType"
-                                   class="px-4 py-2 border-l border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition flex items-center gap-1">
+                                <a asp-action="Index" asp-route-page="@(Model.PageIndex + 1)" asp-route-q="@searchQuery" asp-route-province="@province" asp-route-roomType="@ViewBag.roomType" asp-route-minPrice="@currentMinPrice" asp-route-maxPrice="@currentMaxPrice" asp-route-district="@currentDistrict" asp-route-sortBy="@currentSortBy"
+                                   class="px-4 py-2 border-l border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition flex items-center gap-1">
                                     Tiếp <span class="material-symbols-outlined text-[18px]">chevron_right</span>
                                 </a>
                             }
                             else
                             {
-                                <span class="px-4 py-2 border-l border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-300 dark:text-slate-600 cursor-not-allowed flex items-center gap-1">
+                                <span class="px-4 py-2 border-l border-slate-200 text-sm font-medium text-slate-300 cursor-not-allowed flex items-center gap-1">
                                     Tiếp <span class="material-symbols-outlined text-[18px]">chevron_right</span>
                                 </span>
                             }
@@ -290,13 +437,13 @@
                         <span class="material-symbols-outlined text-slate-400 text-sm">expand_more</span>
                     </h3>
                     <div class="space-y-3">
-                        <a class="block p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 border border-transparent hover:border-slate-100 dark:hover:border-slate-700 transition" href="#">
+                        <a class="block p-3 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-100 transition" href="#">
                             <div class="flex justify-between items-center">
                                 <span class="text-sm font-medium">Ho Chi Minh City</span>
                                 <span class="text-xs text-slate-400">(1,240)</span>
                             </div>
                         </a>
-                        <a class="block p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition" href="#">
+                        <a class="block p-3 rounded-lg hover:bg-slate-50 transition" href="#">
                             <div class="flex justify-between items-center">
                                 <span class="text-sm font-medium">Hanoi Capital</span>
                                 <span class="text-xs text-slate-400">(850)</span>
@@ -317,10 +464,6 @@
                 <a class="text-sm text-slate-500 hover:text-primary transition" href="#">Office space for rent</a>
                 <a class="text-sm text-slate-500 hover:text-primary transition" href="#">Shophouse for sale</a>
                 <a class="text-sm text-slate-500 hover:text-primary transition" href="#">Private houses for rent</a>
-                <a class="text-sm text-slate-500 hover:text-primary transition" href="#">Apartments near Metro</a>
-                <a class="text-sm text-slate-500 hover:text-primary transition" href="#">Commercial space for rent</a>
-                <a class="text-sm text-slate-500 hover:text-primary transition" href="#">Land near industrial park</a>
-                <a class="text-sm text-slate-500 hover:text-primary transition" href="#">Townhouses for sale</a>
                 <a class="text-sm text-slate-500 hover:text-primary transition flex items-center gap-1 font-semibold text-slate-900" href="#">
                     See more <span class="material-symbols-outlined text-sm">expand_more</span>
                 </a>
@@ -352,6 +495,67 @@
     </div>
 
 @section Scripts {
-    @* Thêm asp-append-version="true" để ASP.NET tự động thêm mã băm, trình duyệt sẽ không bị cache file cũ *@
     <script src="~/js/favorite.js" asp-append-version="true"></script>
+    <script>
+    (function () {
+        // ===== FIXED-POSITION DROPDOWN SYSTEM =====
+        var activeMenu = null;
+
+        function positionMenu(btn, menu) {
+            var r = btn.getBoundingClientRect();
+            menu.style.top = (r.bottom + 6) + 'px';
+            menu.style.left = r.left + 'px';
+            var menuW = menu.offsetWidth || 220;
+            if (r.left + menuW > window.innerWidth - 8) {
+                menu.style.left = Math.max(8, r.right - menuW) + 'px';
+            }
+        }
+
+        function openMenu(btn, menu) {
+            if (activeMenu && activeMenu !== menu) closeAll();
+            menu.classList.remove('hidden');
+            positionMenu(btn, menu);
+            activeMenu = menu;
+        }
+
+        function closeAll() {
+            document.querySelectorAll('.filter-dropdown').forEach(function (m) { m.classList.add('hidden'); });
+            activeMenu = null;
+        }
+
+        document.querySelectorAll('[data-dropdown]').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var menu = document.getElementById(btn.getAttribute('data-dropdown'));
+                if (!menu) return;
+                if (!menu.classList.contains('hidden')) { closeAll(); return; }
+                openMenu(btn, menu);
+            });
+        });
+
+        function reposition() {
+            if (!activeMenu) return;
+            var btn = document.querySelector('[data-dropdown="' + activeMenu.id + '"]');
+            if (btn) positionMenu(btn, activeMenu);
+        }
+        window.addEventListener('scroll', reposition, true);
+        window.addEventListener('resize', reposition);
+
+        document.addEventListener('click', function (e) {
+            if (!activeMenu) return;
+            var btn = document.querySelector('[data-dropdown="' + activeMenu.id + '"]');
+            if (btn && btn.contains(e.target)) return;
+            if (activeMenu.contains(e.target)) return;
+            closeAll();
+        });
+
+        // Advanced filter panel
+        var btnAdv = document.getElementById('btnAdvancedFilter');
+        if (btnAdv) {
+            btnAdv.addEventListener('click', function () {
+                document.getElementById('advancedFilterPanel').classList.toggle('hidden');
+            });
+        }
+    })();
+    </script>
 }

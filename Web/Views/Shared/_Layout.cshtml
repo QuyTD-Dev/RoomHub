@@ -128,28 +128,45 @@
                                class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50" />
                     </div>
                 </div>
-                <div class="p-2 max-h-72 overflow-y-auto space-y-0.5 custom-scrollbar">
-                    <button data-province="" class="w-full text-left px-3 py-2 text-sm rounded-lg font-semibold text-primary hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors">
-                        🌐 Toàn quốc
+            </div>
+
+            @* Search Bar *@
+            <div class="flex-1 max-w-2xl relative" id="search-wrapper">
+                <form id="header-search-form"
+                      asp-controller="RoomPosts" asp-action="Index"
+                      method="get">
+                    <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none z-10">
+                        <span class="material-symbols-outlined text-slate-400" style="font-size:20px">search</span>
+                    </div>
+                    <input id="header-search-input"
+                           name="q"
+                           type="text"
+                           value="@Context.Request.Query["q"]"
+                           autocomplete="off"
+                           class="w-full pl-11 pr-14 py-2.5 bg-slate-100 dark:bg-slate-800 border border-transparent rounded-full text-sm focus:outline-none focus:border-transparent focus:ring-2 focus:ring-primary/60 focus:bg-white dark:focus:bg-slate-700 transition-all placeholder:text-slate-400"
+                           placeholder="Tìm kiếm phòng trọ, căn hộ, địa điểm..." />
+                    <input type="hidden" name="province" id="search-province-sync" value="@Context.Request.Query["province"]" />
+                    <button type="submit"
+                            class="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center hover:bg-orange-600 active:scale-95 transition">
+                        <span class="material-symbols-outlined" style="font-size:18px">search</span>
                     </button>
-                    <div class="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
-                    @{
-                        var provinces = new[]
-                        {
-                            "An Giang","Bà Rịa - Vũng Tàu","Bắc Giang","Bắc Kạn","Bạc Liêu",
-                            "Bắc Ninh","Bến Tre","Bình Định","Bình Dương","Bình Phước",
-                            "Bình Thuận","Cà Mau","Cần Thơ","Cao Bằng","Đà Nẵng",
-                            "Đắk Lắk","Đắk Nông","Điện Biên","Đồng Nai","Đồng Tháp",
-                            "Gia Lai","Hà Giang","Hà Nam","Hà Nội","Hà Tĩnh",
-                            "Hải Dương","Hải Phòng","Hậu Giang","Hòa Bình","Hưng Yên",
-                            "Khánh Hòa","Kiên Giang","Kon Tum","Lai Châu","Lâm Đồng",
-                            "Lạng Sơn","Lào Cai","Long An","Nam Định","Nghệ An",
-                            "Ninh Bình","Ninh Thuận","Phú Thọ","Phú Yên","Quảng Bình",
-                            "Quảng Nam","Quảng Ngãi","Quảng Ninh","Quảng Trị","Sóc Trăng",
-                            "Sơn La","Tây Ninh","Thái Bình","Thái Nguyên","Thanh Hóa",
-                            "Thừa Thiên Huế","Tiền Giang","TP. Hồ Chí Minh","Trà Vinh","Tuyên Quang",
-                            "Vĩnh Long","Vĩnh Phúc","Yên Bái"
-                        };
+                </form>
+                <div id="search-autocomplete"
+                     class="hidden absolute left-0 right-0 top-[calc(100%+6px)] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 z-[300] overflow-hidden">
+                    <div id="search-autocomplete-list" class="divide-y divide-slate-100 dark:divide-slate-700 max-h-[420px] overflow-y-auto"></div>
+                    <div id="search-autocomplete-footer" class="hidden px-4 py-2.5 bg-slate-50 dark:bg-slate-700/50 border-t border-slate-100 dark:border-slate-700">
+                        <button type="button" id="search-see-all-btn" class="w-full text-center text-sm font-semibold text-primary hover:underline py-0.5">Xem tất cả kết quả →</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 lg:gap-4">
+                <div class="flex items-center gap-1 md:gap-3 px-2 border-r border-slate-200">
+                    @if (User.Identity.IsAuthenticated && (User.IsInRole("Tenant") || User.IsInRole("PropertyOwner")))
+                    {
+                        <a asp-controller="Favorite" asp-action="Index" class="p-2 text-slate-700 hover:text-red-500 transition" title="Danh sách yêu thích">
+                            <span class="material-symbols-outlined text-2xl">favorite</span>
+                        </a>
                     }
                     @foreach (var p in provinces)
                     {
@@ -976,5 +993,93 @@
         })();
         </script>
     }
+    @* ====== Search Autocomplete JS ====== *@
+    <script>
+    (function () {
+        var input = document.getElementById('header-search-input');
+        var dropdown = document.getElementById('search-autocomplete');
+        var list = document.getElementById('search-autocomplete-list');
+        var footer = document.getElementById('search-autocomplete-footer');
+        var seeAllBtn = document.getElementById('search-see-all-btn');
+        var debounceTimer;
+
+        if (!input) return;
+
+        function formatPrice(p) {
+            if (p >= 1000000) return (p / 1000000).toFixed(1).replace('.0','') + ' triệu/tháng';
+            if (p >= 1000) return (p / 1000).toFixed(0) + 'K/tháng';
+            return p.toLocaleString('vi-VN') + 'đ/tháng';
+        }
+
+        function showDropdown(items) {
+            list.innerHTML = '';
+            if (!items || items.length === 0) {
+                list.innerHTML = '<div class="px-4 py-6 text-center text-sm text-slate-400"><span class="material-symbols-outlined text-3xl block mb-1">search_off</span>Không tìm thấy kết quả</div>';
+                footer.classList.add('hidden');
+                dropdown.classList.remove('hidden');
+                return;
+            }
+            items.forEach(function (item) {
+                var img = item.mainPhotoUrl
+                    ? '<img src="' + item.mainPhotoUrl + '" alt="" class="w-14 h-14 object-cover rounded-xl flex-shrink-0" />'
+                    : '<div class="w-14 h-14 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0"><span class="material-symbols-outlined text-primary text-2xl">apartment</span></div>';
+                var row = document.createElement('a');
+                row.href = '/RoomPosts/Details/' + item.id;
+                row.className = 'flex items-center gap-3 px-4 py-3 hover:bg-orange-50 dark:hover:bg-slate-700 transition cursor-pointer';
+                row.innerHTML = img +
+                    '<div class="flex-1 min-w-0">' +
+                        '<p class="text-sm font-semibold text-slate-800 dark:text-slate-100 line-clamp-1">' + item.title + '</p>' +
+                        '<div class="flex items-center gap-2 mt-0.5">' +
+                            '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-primary whitespace-nowrap">' + (item.roomTypeLabel || '') + '</span>' +
+                            '<span class="text-xs font-bold text-red-500 whitespace-nowrap">' + formatPrice(item.basePrice) + '</span>' +
+                        '</div>' +
+                        '<p class="text-xs text-slate-400 line-clamp-1 mt-0.5"><span class="material-symbols-outlined text-[11px] align-middle mr-0.5">location_on</span>' + (item.address || '') + '</p>' +
+                    '</div>';
+                list.appendChild(row);
+            });
+            footer.classList.remove('hidden');
+            dropdown.classList.remove('hidden');
+        }
+
+        function hideDropdown() {
+            dropdown.classList.add('hidden');
+            list.innerHTML = '';
+            footer.classList.add('hidden');
+        }
+
+        function fetchSuggestions(q) {
+            var province = (document.getElementById('search-province-sync') || {}).value || '';
+            var url = '/RoomPosts/SearchSuggestions?q=' + encodeURIComponent(q) + (province ? '&province=' + encodeURIComponent(province) : '');
+            list.innerHTML = '<div class="px-4 py-5 text-center text-sm text-slate-400">Đang tìm kiếm...</div>';
+            dropdown.classList.remove('hidden');
+            footer.classList.add('hidden');
+            fetch(url).then(function(r){return r.json();}).then(function(data){
+                if (input.value.trim() === q) showDropdown(data);
+            }).catch(function(){
+                list.innerHTML = '<div class="px-4 py-5 text-center text-sm text-red-400">Có lỗi xảy ra</div>';
+            });
+        }
+
+        input.addEventListener('input', function () {
+            var q = input.value.trim();
+            clearTimeout(debounceTimer);
+            if (q.length < 2) { hideDropdown(); return; }
+            debounceTimer = setTimeout(function () { fetchSuggestions(q); }, 250);
+        });
+
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { hideDropdown(); input.blur(); }
+        });
+
+        document.addEventListener('click', function (e) {
+            var wrapper = document.getElementById('search-wrapper');
+            if (wrapper && !wrapper.contains(e.target)) hideDropdown();
+        });
+
+        seeAllBtn && seeAllBtn.addEventListener('click', function () {
+            document.getElementById('header-search-form').submit();
+        });
+    })();
+    </script>
 </body>
 </html>
