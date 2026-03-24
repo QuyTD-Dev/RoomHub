@@ -68,6 +68,7 @@ namespace Web.Controllers
             }
         }
 
+        // 1. HÀM GET: Hiển thị Form Đăng tin (Chỉ lấy phòng chưa đăng)
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> SearchSuggestions(string q, string? province)
@@ -83,41 +84,40 @@ namespace Web.Controllers
         public async Task<IActionResult> Create()
         {
             var userId = GetUserId();
+            // Gọi service để lấy ra danh sách các phòng "Trống & Chưa xuất bản"
             var viewModel = await _roomPostService.GetCreateViewModelAsync(userId);
+
+            // Trả ViewModel mới này ra View
             return View(viewModel);
         }
 
+        // 2. HÀM POST: Nhận dữ liệu và Bật công tắc đăng tin
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateRoomViewModel model)
         {
             var userId = GetUserId();
-            
-            if (model.IsNewBuilding)
-            {
-                ModelState.Remove(nameof(model.FloorId));
-            }
 
             if (!ModelState.IsValid)
             {
+                // Nếu lỗi, phải nạp lại danh sách phòng vào Dropdown để UI không bị sập
                 var viewModel = await _roomPostService.GetCreateViewModelAsync(userId);
-                model.AvailableFloors = viewModel.AvailableFloors;
-                model.AvailableAmenities = viewModel.AvailableAmenities;
+                model.AvailableRooms = viewModel.AvailableRooms;
                 return View(model);
             }
 
             try
             {
-                await _roomPostService.CreateRoomAsync(model, userId);
-                TempData["Success"] = "Room post created successfully.";
-                return RedirectToAction(nameof(Index));
+                // Gọi hàm xuất bản thay vì tạo mới
+                await _roomPostService.PublishRoomAsync(model, userId);
+                TempData["Success"] = "Đăng tin thành công lên Trang chủ!";
+                return RedirectToAction(nameof(MyPosts));
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "Error creating room post: " + ex.Message;
+                TempData["Error"] = "Lỗi khi đăng tin: " + ex.Message;
                 var viewModel = await _roomPostService.GetCreateViewModelAsync(userId);
-                model.AvailableFloors = viewModel.AvailableFloors;
-                model.AvailableAmenities = viewModel.AvailableAmenities;
+                model.AvailableRooms = viewModel.AvailableRooms;
                 return View(model);
             }
         }

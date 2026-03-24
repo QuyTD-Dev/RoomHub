@@ -4,6 +4,7 @@ using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260322134651_AddIsPublishedToRoom")]
+    partial class AddIsPublishedToRoom
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -205,6 +208,30 @@ namespace Infrastructure.Persistence.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.ToTable("AspNetUsers", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "test-user-id-123",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "fdfc974a-1119-4bc4-bc41-3a391396cae6",
+                            CreatedAt = new DateTime(2026, 3, 22, 13, 46, 50, 860, DateTimeKind.Utc).AddTicks(2107),
+                            Email = "owner@roomhub.com",
+                            EmailConfirmed = true,
+                            FullName = "Chủ Trọ Test",
+                            IsBanned = false,
+                            IsDeleted = false,
+                            IsVerified = false,
+                            LockoutEnabled = false,
+                            NormalizedEmail = "OWNER@ROOMHUB.COM",
+                            NormalizedUserName = "OWNER_TEST",
+                            PasswordHash = "AQAAAAEAACcQAAAAE...",
+                            PhoneNumber = "0123456789",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "6638fb09-2d12-441e-bb12-cec0cffad8c1",
+                            TwoFactorEnabled = false,
+                            UserName = "owner_test"
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.AuditLog", b =>
@@ -305,15 +332,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
-                    b.Property<decimal>("ElectricityPrice")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.Property<decimal>("GarbagePrice")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.Property<decimal>("InternetPrice")
-                        .HasColumnType("decimal(18, 2)");
-
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -346,9 +364,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
-                    b.Property<decimal>("WaterPrice")
-                        .HasColumnType("decimal(18, 2)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerId");
@@ -357,6 +372,20 @@ namespace Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_Buildings_Location");
 
                     b.ToTable("Buildings", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Address = "123 Đường Test",
+                            City = "Hồ Chí Minh",
+                            CreatedAt = new DateTime(2026, 3, 9, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            District = "Quận 1",
+                            IsDeleted = false,
+                            Name = "Chung cư mini RoomHub",
+                            OwnerId = "test-user-id-123",
+                            Ward = "Phường Bến Nghé"
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.Contract", b =>
@@ -512,6 +541,17 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("BuildingId");
 
                     b.ToTable("Floors", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            BuildingId = 1,
+                            CreatedAt = new DateTime(2026, 3, 9, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Tầng 1 (Trệt)",
+                            FloorNumber = 1,
+                            IsDeleted = false
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.Invoice", b =>
@@ -929,17 +969,8 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(1024)
                         .HasColumnType("nvarchar(1024)");
 
-                    b.Property<decimal?>("ElectricityPrice")
-                        .HasColumnType("decimal(18, 2)");
-
                     b.Property<int>("FloorId")
                         .HasColumnType("int");
-
-                    b.Property<decimal?>("GarbagePrice")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.Property<decimal?>("InternetPrice")
-                        .HasColumnType("decimal(18, 2)");
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
@@ -987,9 +1018,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal?>("WaterPrice")
-                        .HasColumnType("decimal(18, 2)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("LandlordId");
@@ -1005,6 +1033,26 @@ namespace Infrastructure.Persistence.Migrations
                         .HasDatabaseName("IX_Rooms_Status_Price");
 
                     b.ToTable("Rooms", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            BasePrice = 3500000m,
+                            CreatedAt = new DateTime(2026, 3, 9, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Phòng mới xây, dọn vào ở ngay.",
+                            FloorId = 1,
+                            IsDeleted = false,
+                            IsFurnished = true,
+                            IsPublished = false,
+                            LandlordId = "test-user-id-123",
+                            MaxCapacity = 2,
+                            RoomNumber = "101",
+                            RoomType = "Other",
+                            Status = "Available",
+                            SurfaceArea = 25.5m,
+                            Title = "Phòng trọ cao cấp cửa sổ thoáng mát"
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.RoomAmenity", b =>
@@ -1020,6 +1068,18 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("AmenityId");
 
                     b.ToTable("RoomAmenities", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            RoomId = 1,
+                            AmenityId = 1
+                        },
+                        new
+                        {
+                            RoomId = 1,
+                            AmenityId = 2
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.RoomPhoto", b =>
@@ -1403,6 +1463,13 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("AspNetUserRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            UserId = "test-user-id-123",
+                            RoleId = "owner-role-id"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>

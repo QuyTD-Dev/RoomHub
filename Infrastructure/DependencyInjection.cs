@@ -82,6 +82,12 @@ namespace Infrastructure
             services.AddScoped<IReviewViolationRepository, ReviewViolationRepository>();
             services.AddScoped<IReviewService, ReviewService>();
 
+            services.AddScoped<IBuildingRepository, BuildingRepository>();
+            services.AddScoped<IBuildingService, BuildingService>();
+
+            services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+            services.AddScoped<IInvoiceService, InvoiceService>();
+
             services.AddHttpClient<IGeminiModerationService, GeminiModerationService>();
             services.AddHttpClient<IChatbotService, ChatbotService>();
 
