@@ -4,7 +4,7 @@ namespace Application.Interfaces.Services
 {
     public interface IRoomPostService
     {
-        Task<PaginatedList<RoomListViewModel>> GetAllRoomsAsync(string? keyword = null, string? province = null, Domain.Enums.RoomType? roomType = null, int pageIndex = 1, int pageSize = 9);
+        Task<PaginatedList<RoomListViewModel>> GetAllRoomsAsync(string? keyword = null, string? province = null, Domain.Enums.RoomType? roomType = null, decimal? minPrice = null, decimal? maxPrice = null, string? district = null, string? sortBy = null, int pageIndex = 1, int pageSize = 9);
 
         // Search suggestions for autocomplete dropdown
         Task<IEnumerable<RoomSuggestionDto>> GetSuggestionsAsync(string keyword, string? province = null, int maxResults = 6);

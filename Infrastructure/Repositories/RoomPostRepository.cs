@@ -125,14 +125,23 @@ public async Task<Room?> GetRoomDetailsByIdAsync(int id)
                 .ToListAsync();
         }
 
-        public async Task<(IEnumerable<Room> Items, int TotalCount)> PaginatedSearchAsync(string? keyword, string? province, Domain.Enums.RoomType? roomType, int pageIndex, int pageSize)
+        public async Task<(IEnumerable<Room> Items, int TotalCount)> PaginatedSearchAsync(string? keyword, string? province, Domain.Enums.RoomType? roomType, decimal? minPrice, decimal? maxPrice, string? district, string? sortBy, int pageIndex, int pageSize)
         {
-            var query = BuildSearchBaseQuery(keyword, province, roomType);
+            var query = BuildSearchBaseQuery(keyword, province, roomType, minPrice, maxPrice, district);
             
             int totalCount = await query.CountAsync();
-            
-            var items = await query
-                .OrderByDescending(r => r.CreatedAt)
+
+            // Sorting
+            IOrderedQueryable<Room> ordered = sortBy switch
+            {
+                "price_asc" => query.OrderBy(r => r.BasePrice),
+                "price_desc" => query.OrderByDescending(r => r.BasePrice),
+                "area_asc" => query.OrderBy(r => r.SurfaceArea),
+                "area_desc" => query.OrderByDescending(r => r.SurfaceArea),
+                _ => query.OrderByDescending(r => r.CreatedAt)
+            };
+
+            var items = await ordered
                 .Skip((pageIndex - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -140,7 +149,7 @@ public async Task<Room?> GetRoomDetailsByIdAsync(int id)
             return (items, totalCount);
         }
 
-        private IQueryable<Room> BuildSearchBaseQuery(string? keyword, string? province, Domain.Enums.RoomType? roomType)
+        private IQueryable<Room> BuildSearchBaseQuery(string? keyword, string? province, Domain.Enums.RoomType? roomType, decimal? minPrice = null, decimal? maxPrice = null, string? district = null)
         {
             var query = _context.Rooms
                 .Include(r => r.Floor)
@@ -172,6 +181,24 @@ public async Task<Room?> GetRoomDetailsByIdAsync(int id)
             if (roomType.HasValue)
             {
                 query = query.Where(r => r.RoomType == roomType.Value);
+            }
+
+            if (minPrice.HasValue)
+            {
+                query = query.Where(r => r.BasePrice >= minPrice.Value);
+            }
+
+            if (maxPrice.HasValue)
+            {
+                query = query.Where(r => r.BasePrice <= maxPrice.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(district))
+            {
+                query = query.Where(r =>
+                    r.Floor.Building.District != null &&
+                    EF.Functions.Collate(r.Floor.Building.District, "SQL_Latin1_General_CP1_CI_AI").Contains(district)
+                );
             }
 
             return query;

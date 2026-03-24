@@ -25,16 +25,19 @@ namespace Web.Controllers
         }
 
         [AllowAnonymous]
-        public async Task<IActionResult> Index(string? q, string? province, Domain.Enums.RoomType? roomType, int page = 1)
+        public async Task<IActionResult> Index(string? q, string? province, Domain.Enums.RoomType? roomType, decimal? minPrice, decimal? maxPrice, string? district, string? sortBy, int page = 1)
         {
             int pageSize = 9;
-            var paginatedRooms = await _roomPostService.GetAllRoomsAsync(q, province, roomType, page, pageSize);
+            var paginatedRooms = await _roomPostService.GetAllRoomsAsync(q, province, roomType, minPrice, maxPrice, district, sortBy, page, pageSize);
 
-            // Pass filter state to view
-            ViewBag.isSearching = !string.IsNullOrWhiteSpace(q) || !string.IsNullOrWhiteSpace(province) || roomType.HasValue;
+            ViewBag.isSearching = !string.IsNullOrWhiteSpace(q) || !string.IsNullOrWhiteSpace(province) || roomType.HasValue || minPrice.HasValue || maxPrice.HasValue || !string.IsNullOrWhiteSpace(district);
             ViewBag.searchQuery = q;
             ViewBag.province = province;
             ViewBag.roomType = roomType;
+            ViewBag.minPrice = minPrice;
+            ViewBag.maxPrice = maxPrice;
+            ViewBag.district = district;
+            ViewBag.sortBy = sortBy;
             ViewBag.CurrentPage = paginatedRooms.PageIndex;
             ViewBag.TotalPages = paginatedRooms.TotalPages;
 

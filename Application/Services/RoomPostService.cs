@@ -17,9 +17,9 @@ namespace Application.Services
             _favoriteRepo = favoriteRepo;
         }
 
-        public async Task<PaginatedList<RoomListViewModel>> GetAllRoomsAsync(string? keyword = null, string? province = null, Domain.Enums.RoomType? roomType = null, int pageIndex = 1, int pageSize = 9)
+        public async Task<PaginatedList<RoomListViewModel>> GetAllRoomsAsync(string? keyword = null, string? province = null, Domain.Enums.RoomType? roomType = null, decimal? minPrice = null, decimal? maxPrice = null, string? district = null, string? sortBy = null, int pageIndex = 1, int pageSize = 9)
         {
-            var (rooms, totalCount) = await _repository.PaginatedSearchAsync(keyword, province, roomType, pageIndex, pageSize);
+            var (rooms, totalCount) = await _repository.PaginatedSearchAsync(keyword, province, roomType, minPrice, maxPrice, district, sortBy, pageIndex, pageSize);
 
             var items = rooms.Select(r => new RoomListViewModel
             {
