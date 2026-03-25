@@ -348,7 +348,7 @@
                                 </div>
                                 <div class="flex justify-between items-end mt-4">
                                     <div>
-                                        <p class="text-red-600 font-bold text-xl">@item.BasePrice.ToString("C")</p>
+                                        <p class="text-red-600 font-bold text-xl">@(item.BasePrice.ToString("N0") + "đ")</p>
                                         <p class="text-xs text-slate-400">Posted: @item.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")</p>
                                     </div>
                                     <div class="flex items-center gap-3">
