@@ -33,21 +33,28 @@
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Thành phố <span class="text-red-500">*</span></label>
-                    <input type="text" id="b-province" value="Đà Nẵng" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg" />
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Tỉnh/Thành phố <span class="text-red-500">*</span></label>
+                    <select id="b-province" onchange="loadDistricts()" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer">
+                        <option value="">-- Chọn Tỉnh/Thành --</option>
+                    </select>
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-2">Quận/Huyện <span class="text-red-500">*</span></label>
-                    <input type="text" id="b-district" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg" placeholder="Ví dụ: Liên Chiểu" />
+                    <select id="b-district" onchange="loadWards()" disabled class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                        <option value="">-- Chọn Quận/Huyện --</option>
+                    </select>
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-2">Phường/Xã <span class="text-red-500">*</span></label>
-                    <input type="text" id="b-ward" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg" placeholder="Ví dụ: Hòa Khánh Bắc" />
+                    <select id="b-ward" disabled class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                        <option value="">-- Chọn Phường/Xã --</option>
+                    </select>
                 </div>
-                <div class="md:col-span-3">
-                    <label class="block text-sm font-bold text-gray-700 mb-2">Số nhà, Tên đường <span class="text-red-500">*</span></label>
-                    <input type="text" id="b-address" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg" placeholder="Ví dụ: 123 Tôn Đức Thắng" />
-                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Số nhà, Tên đường <span class="text-red-500">*</span></label>
+                <input type="text" id="b-address" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="VD: 123 Nguyễn Văn Linh..." />
             </div>
             
             <hr class="border-gray-100" />
@@ -155,6 +162,80 @@
 
 @section Scripts {
     <script>
+        // 1. TẢI DỮ LIỆU TỈNH THÀNH (KHI VỪA VÀO TRANG)
+        document.addEventListener("DOMContentLoaded", function() {
+            fetch('https://esgoo.net/api-tinhthanh/1/0.htm')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error === 0) {
+                        let html = '<option value="">-- Chọn Tỉnh/Thành --</option>';
+                        // Gán value chính là tên Tỉnh để lúc Submit gửi thẳng chữ xuống Backend C#
+                        data.data.forEach(p => {
+                            html += `<option value="${p.full_name}" data-id="${p.id}">${p.full_name}</option>`;
+                        });
+                        document.getElementById('b-province').innerHTML = html;
+                    }
+                });
+        });
+
+        // 2. TẢI QUẬN/HUYỆN (KHI CHỌN XONG TỈNH)
+        function loadDistricts() {
+            const provSelect = document.getElementById('b-province');
+            const distSelect = document.getElementById('b-district');
+            const wardSelect = document.getElementById('b-ward');
+            
+            const selectedOption = provSelect.options[provSelect.selectedIndex];
+            const provId = selectedOption.getAttribute('data-id');
+            
+            // Reset & Khóa các ô bên dưới
+            distSelect.innerHTML = '<option value="">-- Chọn Quận/Huyện --</option>';
+            distSelect.disabled = true;
+            wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
+            wardSelect.disabled = true;
+
+            if(!provId) return;
+
+            fetch(`https://esgoo.net/api-tinhthanh/2/${provId}.htm`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error === 0) {
+                        let html = '<option value="">-- Chọn Quận/Huyện --</option>';
+                        data.data.forEach(d => {
+                            html += `<option value="${d.full_name}" data-id="${d.id}">${d.full_name}</option>`;
+                        });
+                        distSelect.innerHTML = html;
+                        distSelect.disabled = false; // Mở khóa ô Quận
+                    }
+                });
+        }
+
+        // 3. TẢI PHƯỜNG/XÃ (KHI CHỌN XONG QUẬN)
+        function loadWards() {
+            const distSelect = document.getElementById('b-district');
+            const wardSelect = document.getElementById('b-ward');
+            
+            const selectedOption = distSelect.options[distSelect.selectedIndex];
+            const distId = selectedOption.getAttribute('data-id');
+            
+            // Reset & Khóa ô Phường
+            wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
+            wardSelect.disabled = true;
+
+            if(!distId) return;
+
+            fetch(`https://esgoo.net/api-tinhthanh/3/${distId}.htm`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error === 0) {
+                        let html = '<option value="">-- Chọn Phường/Xã --</option>';
+                        data.data.forEach(w => {
+                            html += `<option value="${w.full_name}" data-id="${w.id}">${w.full_name}</option>`;
+                        });
+                        wardSelect.innerHTML = html;
+                        wardSelect.disabled = false; // Mở khóa ô Phường
+                    }
+                });
+        }
         // Preview Hình ảnh
         let selectedFiles = [];
         function previewImages(event) {
