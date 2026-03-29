@@ -1,6 +1,12 @@
 ﻿@model List<Application.DTOs.Buildings.BuildingListDto>
 @{
     ViewData["Title"] = "Quản lý Tòa nhà";
+    int totalBuildings = Model.Count;
+    int totalRooms = Model.Sum(b => b.TotalRooms);
+    int occupiedRooms = Model.Sum(b => b.OccupiedRooms);
+    
+    // Tránh lỗi chia cho 0 nếu chưa có phòng nào
+    double totalOccupancyRate = totalRooms > 0 ? Math.Round((double)occupiedRooms / totalRooms * 100, 1) : 0;
 }
 
 <div class="max-w-[1200px] mx-auto px-4 py-8">
@@ -14,7 +20,39 @@
             Thêm tòa nhà mới
         </a>
     </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+            <div>
+                <p class="text-xs font-bold text-blue-500 mb-1 uppercase tracking-wider">Tổng số Tòa nhà</p>
+                <h3 class="text-4xl font-black text-gray-900">@totalBuildings</h3>
+            </div>
+            <div class="w-14 h-14 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
+                <span class="material-symbols-outlined text-3xl">domain</span>
+            </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+            <div>
+                <p class="text-xs font-bold text-indigo-500 mb-1 uppercase tracking-wider">Tổng số Phòng</p>
+                <h3 class="text-4xl font-black text-indigo-600">@totalRooms</h3>
+            </div>
+            <div class="w-14 h-14 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                <span class="material-symbols-outlined text-3xl">meeting_room</span>
+            </div>
+        </div>
 
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+            <div>
+                <p class="text-xs font-bold text-green-500 mb-1 uppercase tracking-wider">Tỉ lệ Lấp đầy</p>
+                <h3 class="text-4xl font-black text-green-600">@totalOccupancyRate%</h3>
+            </div>
+            <div class="w-14 h-14 rounded-full bg-green-50 text-green-500 flex items-center justify-center">
+                <span class="material-symbols-outlined text-3xl">pie_chart</span>
+            </div>
+        </div>
+
+    </div>
     @if (!Model.Any())
     {
         <div class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 flex flex-col items-center justify-center text-center">

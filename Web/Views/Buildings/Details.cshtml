@@ -2,6 +2,10 @@
 @using Domain.Enums
 @{
     ViewData["Title"] = "Lưới phòng " + Model.Name;
+    var allRooms = Model.Floors.SelectMany(f => f.Rooms).ToList();
+    int totalRooms = allRooms.Count;
+    int availableRooms = allRooms.Count(r => r.Status == RoomStatus.Available);
+    int occupiedRooms = allRooms.Count(r => r.Status == RoomStatus.Occupied);
 }
 
 <div class="max-w-[1200px] mx-auto px-4 py-8">
@@ -16,7 +20,39 @@
             </p>
         </div>
     </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+            <div>
+                <p class="text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Tổng số phòng</p>
+                <h3 class="text-4xl font-black text-gray-900">@totalRooms</h3>
+            </div>
+            <div class="w-14 h-14 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
+                <span class="material-symbols-outlined text-3xl">apartment</span>
+            </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+            <div>
+                <p class="text-xs font-bold text-orange-500 mb-1 uppercase tracking-wider">Đang thuê</p>
+                <h3 class="text-4xl font-black text-orange-600">@occupiedRooms</h3>
+            </div>
+            <div class="w-14 h-14 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center">
+                <span class="material-symbols-outlined text-3xl">vpn_key</span>
+            </div>
+        </div>
 
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+            <div>
+                <p class="text-xs font-bold text-green-500 mb-1 uppercase tracking-wider">Phòng trống</p>
+                <h3 class="text-4xl font-black text-green-600">@availableRooms</h3>
+            </div>
+            <div class="w-14 h-14 rounded-full bg-green-50 text-green-500 flex items-center justify-center">
+                <span class="material-symbols-outlined text-3xl">meeting_room</span>
+            </div>
+        </div>
+
+    </div>
     <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-wrap gap-6 mb-8">
         <div class="flex items-center gap-2 text-sm font-medium">
             <div class="w-4 h-4 rounded bg-green-50 border border-green-200"></div> Phòng trống

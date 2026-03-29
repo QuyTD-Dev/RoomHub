@@ -68,18 +68,27 @@ namespace Web.Controllers
         }
         // MÀN HÌNH DANH SÁCH HÓA ĐƠN
         [HttpGet]
-        public async Task<IActionResult> Invoices(int? buildingId, int? month, int? year, Domain.Enums.InvoiceStatus? status)
+        public async Task<IActionResult> Invoices(int? buildingId, int? month, int? year, Domain.Enums.InvoiceStatus? status, int page = 1)
         {
             var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
 
+            // [ĐÃ SỬA]: Khai báo biến cục bộ rõ ràng kiểu 'int' để tránh bị 'dynamic'
+            int selectedMonth = month ?? DateTime.Now.Month;
+            int selectedYear = year ?? DateTime.Now.Year;
+
             ViewBag.Buildings = await _buildingService.GetMyBuildingsAsync(ownerId);
             ViewBag.SelectedBuildingId = buildingId;
-            ViewBag.SelectedMonth = month ?? DateTime.Now.Month;
-            ViewBag.SelectedYear = year ?? DateTime.Now.Year;
-            ViewBag.SelectedStatus = status; // Trạng thái hiện tại
+            ViewBag.SelectedMonth = selectedMonth;
+            ViewBag.SelectedYear = selectedYear;
+            ViewBag.SelectedStatus = status;
 
-            var invoices = await _invoiceService.GetInvoicesAsync(ownerId, buildingId, ViewBag.SelectedMonth, ViewBag.SelectedYear, status);
-            return View(invoices);
+            // [ĐÃ SỬA]: Truyền biến kiểu int vào Service thay vì truyền ViewBag
+            var result = await _invoiceService.GetInvoicesAsync(ownerId, buildingId, selectedMonth, selectedYear, status, page, 10);
+
+            ViewBag.CurrentPage = result.CurrentPage;
+            ViewBag.TotalPages = result.TotalPages;
+
+            return View(result.Items);
         }
 
         // API XÁC NHẬN ĐÃ THU TIỀN
