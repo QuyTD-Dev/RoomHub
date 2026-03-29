@@ -10,7 +10,8 @@ namespace Application.Interfaces.Services
 
         // Thuật toán: Nhận chỉ số mới -> Tính toán -> Sinh Hóa đơn (Invoice)
         Task<bool> GenerateMonthlyInvoicesAsync(int buildingId, List<RecordUtilityDto> readings, string landlordId);
-        Task<List<InvoiceListViewModel>> GetInvoicesAsync(string landlordId, int? buildingId, int? month, int? year, Domain.Enums.InvoiceStatus? status = null);
+        // Thay thế dòng cũ bằng dòng này:
+        Task<(List<InvoiceListViewModel> Items, int TotalPages, int CurrentPage)> GetInvoicesAsync(string landlordId, int? buildingId, int? month, int? year, Domain.Enums.InvoiceStatus? status = null, int pageIndex = 1, int pageSize = 10);
         Task<bool> MarkInvoiceAsPaidAsync(int invoiceId, string landlordId);
         Task<List<InvoiceListViewModel>> GetTenantInvoicesAsync(string tenantId);
         Task<InvoiceDetailViewModel> GetInvoiceDetailAsync(int invoiceId, string tenantId);

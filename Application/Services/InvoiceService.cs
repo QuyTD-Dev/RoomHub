@@ -147,10 +147,18 @@ namespace Application.Services
 
             return await _invoiceRepo.SaveInvoicesAndReadingsAsync(newInvoices, newReadings);
         }
-        public async Task<List<InvoiceListViewModel>> GetInvoicesAsync(string landlordId, int? buildingId, int? month, int? year, InvoiceStatus? status = null)
+        // Cập nhật lại toàn bộ hàm GetInvoicesAsync
+        public async Task<(List<InvoiceListViewModel> Items, int TotalPages, int CurrentPage)> GetInvoicesAsync(string landlordId, int? buildingId, int? month, int? year, InvoiceStatus? status = null, int pageIndex = 1, int pageSize = 10)
         {
+            // 1. Lấy toàn bộ dữ liệu từ Database theo bộ lọc
             var invoices = await _invoiceRepo.GetInvoicesByLandlordAsync(landlordId, buildingId, month, year, status);
-            return invoices.Select(i => new InvoiceListViewModel
+
+            // 2. Tính toán tổng số trang
+            int totalCount = invoices.Count;
+            int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            // 3. Cắt dữ liệu bằng Skip và Take
+            var pagedData = invoices.Skip((pageIndex - 1) * pageSize).Take(pageSize).Select(i => new InvoiceListViewModel
             {
                 InvoiceId = i.Id,
                 RoomNumber = i.Contract.Room.RoomNumber,
@@ -159,8 +167,11 @@ namespace Application.Services
                 InvoiceDate = i.InvoiceDate,
                 TotalAmount = i.TotalAmount,
                 Status = i.Status,
-                PaymentProofPath = i.PaymentProofPath // Đẩy URL ảnh ra ngoài
+                PaymentProofPath = i.PaymentProofPath
             }).ToList();
+
+            // 4. Trả về 3 tham số cùng lúc
+            return (pagedData, totalPages, pageIndex);
         }
 
         public async Task<bool> MarkInvoiceAsPaidAsync(int invoiceId, string landlordId)
