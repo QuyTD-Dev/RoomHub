@@ -1,7 +1,9 @@
-﻿using Application.DTOs.Billing;
+using Application.DTOs.Billing;
 using Application.Interfaces.Services;
+using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace Web.Controllers
@@ -11,11 +13,13 @@ namespace Web.Controllers
     {
         private readonly IInvoiceService _invoiceService;
         private readonly IBuildingService _buildingService;
+        private readonly ApplicationDbContext _context;
 
-        public BillingController(IInvoiceService invoiceService, IBuildingService buildingService)
+        public BillingController(IInvoiceService invoiceService, IBuildingService buildingService, ApplicationDbContext context)
         {
             _invoiceService = invoiceService;
             _buildingService = buildingService;
+            _context = context;
         }
 
         // 1. MÀN HÌNH HIỂN THỊ LƯỚI CHỐT SỐ
@@ -99,6 +103,29 @@ namespace Web.Controllers
             try
             {
                 await _invoiceService.MarkInvoiceAsPaidAsync(invoiceId, ownerId);
+
+                // Gửi thông báo cho khách thuê
+                var invoice = await _context.Invoices
+                    .Include(i => i.Contract)
+                        .ThenInclude(c => c.Room)
+                    .Include(i => i.Contract.Tenant)
+                    .FirstOrDefaultAsync(i => i.Id == invoiceId);
+
+                if (invoice?.Contract.TenantId != null)
+                {
+                    _context.Notifications.Add(new Domain.Entities.Notification
+                    {
+                        UserId = invoice.Contract.TenantId,
+                        Type = "PaymentConfirmed",
+                        Title = "Thanh toán được xác nhận",
+                        Content = $"Hóa đơn tiền thuê Phòng {invoice.Contract.Room.RoomNumber} tháng {invoice.InvoiceDate.Month}/{invoice.InvoiceDate.Year} đã được chủ nhà xác nhận thanh toán thành công. Cảm ơn bạn đã đóng tiền đúng hạn!",
+                        LinkedId = invoiceId,
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    await _context.SaveChangesAsync();
+                }
+
                 return Json(new { success = true, message = "Đã gạch nợ thành công!" });
             }
             catch (Exception ex)

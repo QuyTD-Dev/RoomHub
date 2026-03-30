@@ -114,7 +114,8 @@ namespace Web.Controllers
 
         // [QUAN TRỌNG NHẤT]: Phải dùng [FromForm] cho cả 2 biến, tuyệt đối không còn chữ [FromBody] nào ở đây
         [HttpPost]
-        public async Task<IActionResult> SubmitPayment([FromForm] int invoiceId, [FromForm] IFormFile? paymentProof)
+        public async Task<IActionResult> SubmitPayment([FromForm] int invoiceId, [FromForm] IFormFile? paymentProof,
+            [FromServices] Infrastructure.Persistence.ApplicationDbContext context)
         {
             try
             {
@@ -130,6 +131,30 @@ namespace Web.Controllers
 
                 // Gọi Service để cập nhật trạng thái "Chờ duyệt" và lưu link ảnh
                 await _invoiceService.SubmitPaymentProofAsync(invoiceId, tenantId, proofUrl);
+
+                // Gửi thông báo cho chủ nhà
+                var invoice = await context.Invoices
+                    .Include(i => i.Contract)
+                        .ThenInclude(c => c.Room)
+                    .Include(i => i.Contract.Tenant)
+                    .FirstOrDefaultAsync(i => i.Id == invoiceId);
+
+                if (invoice != null)
+                {
+                    var tenantName = invoice.Contract.Tenant?.FullName ?? User.Identity!.Name ?? "Khách thuê";
+                    context.Notifications.Add(new Domain.Entities.Notification
+                    {
+                        UserId = invoice.Contract.OwnerId,
+                        Type = "PaymentSubmitted",
+                        Title = "Khách đã chuyển khoản",
+                        Content = $"{tenantName} đã gửi biên lai thanh toán hóa đơn Phòng {invoice.Contract.Room.RoomNumber} tháng {invoice.InvoiceDate.Month}/{invoice.InvoiceDate.Year}. Vui lòng kiểm tra và xác nhận.",
+                        LinkedId = invoiceId,
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    await context.SaveChangesAsync();
+                }
+
                 return Json(new { success = true });
             }
             catch (Exception ex)

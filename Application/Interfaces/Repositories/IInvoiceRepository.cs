@@ -1,4 +1,4 @@
-﻿using Domain.Entities;
+using Domain.Entities;
 
 namespace Application.Interfaces.Repositories
 {
@@ -14,5 +14,6 @@ namespace Application.Interfaces.Repositories
         Task<Invoice?> GetInvoiceByIdAsync(int invoiceId);
         Task UpdateInvoiceAsync(Invoice invoice);
         Task<List<Invoice>> GetInvoicesByTenantAsync(string tenantId);
+        Task SaveNotificationsAsync(List<Notification> notifications);
     }
 }

@@ -1,4 +1,4 @@
-﻿using Application.Interfaces.Repositories;
+using Application.Interfaces.Repositories;
 using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Persistence;
@@ -112,5 +112,14 @@ namespace Infrastructure.Repositories
                 .OrderByDescending(i => i.InvoiceDate)
                 .ToListAsync();
         }
+
+        public async Task SaveNotificationsAsync(List<Notification> notifications)
+        {
+            if (notifications.Any())
+            {
+                await _context.Notifications.AddRangeAsync(notifications);
+                await _context.SaveChangesAsync();
+            }
+        }
     }
-}
+}
