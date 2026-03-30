@@ -81,11 +81,16 @@ namespace Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Create()
+        public async Task<IActionResult> Create(int? roomId = null)
         {
             var userId = GetUserId();
             // Gọi service để lấy ra danh sách các phòng "Trống & Chưa xuất bản"
             var viewModel = await _roomPostService.GetCreateViewModelAsync(userId);
+            
+            if (roomId.HasValue)
+            {
+                viewModel.SelectedRoomId = roomId.Value;
+            }
 
             // Trả ViewModel mới này ra View
             return View(viewModel);
