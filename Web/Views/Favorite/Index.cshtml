@@ -1,4 +1,4 @@
-﻿@using System.Security.Claims
+@using System.Security.Claims
 @model IEnumerable<Application.DTOs.RoomPosts.RoomListViewModel>
 @{
     ViewData["Title"] = "Phòng đã yêu thích";
@@ -18,7 +18,7 @@
             {
                 <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-100 overflow-hidden group hover:shadow-md transition">
                     <div class="h-48 overflow-hidden relative">
-                        <img alt="@item.Title" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIyzXG4Y1l8UHabQUlbLLXu93616OZ2rWZdqfHk7YoN9koc7TX0kCZ2eSt0qfkD4UwHBBmwWH8XeJ2Kec8weBQ7f9rb-IRzo3NstQ9rP0YtaTy1t37SQod0n354EM5LOQV6-u4YddEjWcow5DzBU5oiUvSdB6QK-WcDauq_n3jOy3R41-yBMXB_vRiy--1vTdA12NsxepsZj1r2VC0bBxKIs3ROL5V8_1FxU2EzCuyRJGZ2SoFQjoduY4NhOvKhX3djUfBS7Oo6JY" />
+                        <img alt="@item.Title" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" src="@(string.IsNullOrEmpty(item.MainPhotoUrl) ? "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80" : item.MainPhotoUrl)" />
                         
                         <button class="btn-toggle-favorite absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 backdrop-blur shadow hover:scale-110 transition flex items-center justify-center"
                                 data-room-id="@item.Id">

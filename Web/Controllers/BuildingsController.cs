@@ -16,11 +16,12 @@ namespace Web.Controllers
     {
         private readonly IBuildingService _buildingService;
         private readonly IBuildingRepository _buildingRepository;
-
-        public BuildingsController(IBuildingService buildingService, IBuildingRepository buildingRepository)
+        private readonly ICloudinaryService _cloudinaryService;
+        public BuildingsController(IBuildingService buildingService, IBuildingRepository buildingRepository, ICloudinaryService cloudinaryService)
         {
             _buildingService = buildingService;
             _buildingRepository = buildingRepository;
+            _cloudinaryService = cloudinaryService;
         }
 
         // 1. MÀN HÌNH DANH SÁCH TÒA NHÀ
@@ -45,9 +46,12 @@ namespace Web.Controllers
             var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             try
             {
-                // Gọi Service xử lý như bình thường
-                // Lưu ý: Lúc này request.Config.Photos đã chứa các file ảnh bạn tải lên.
-                // Bạn có thể gọi ICloudinaryService ở đây để lưu ảnh lên Cloud, sau đó gán URL vào DB.
+                if (request.Config.Photos != null && request.Config.Photos.Any())
+                {
+                    var file = request.Config.Photos.First();
+                    var uploadResult = await _cloudinaryService.UploadImageAsync(file, "buildings");
+                    request.Config.ThumbnailUrl = uploadResult.Url;
+                }
 
                 int buildingId = await _buildingService.CreateBuildingAsync(ownerId, request.Config, request.Structure);
                 return Json(new { success = true, buildingId = buildingId, message = "Tạo tòa nhà thành công!" });

@@ -43,7 +43,7 @@ namespace Application.Services
                     TotalRooms = total,
                     AvailableRooms = available,
                     OccupiedRooms = occupied,
-                    ThumbnailUrl = null
+                    ThumbnailUrl = b.ThumbnailUrl
                 });
             }
             return result;
@@ -67,7 +67,7 @@ namespace Application.Services
                 WaterPrice = config.WaterPrice,
                 InternetPrice = config.InternetPrice,
                 GarbagePrice = config.GarbagePrice,
-
+                ThumbnailUrl = config.ThumbnailUrl,
                 CreatedAt = DateTime.UtcNow
             };
 

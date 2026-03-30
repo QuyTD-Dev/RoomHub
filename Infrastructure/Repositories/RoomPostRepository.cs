@@ -110,7 +110,7 @@ namespace Infrastructure.Repositories
             .ThenInclude(ra => ra.Amenity)
         .Include(r => r.RoomPhotos)
         .Include(r => r.Reviews)
-        .Where(r => !r.IsDeleted && r.Status == Domain.Enums.RoomStatus.Active)
+        .Where(r => !r.IsDeleted && r.Status == Domain.Enums.RoomStatus.Active && r.IsPublished == true)
         .OrderByDescending(r => r.CreatedAt)
         .ToListAsync();
 }
@@ -172,7 +172,7 @@ public async Task<Room?> GetRoomDetailsByIdAsync(int id)
                 .Include(r => r.RoomAmenities)
                     .ThenInclude(ra => ra.Amenity)
                 .Include(r => r.RoomPhotos)
-                .Where(r => !r.IsDeleted && (r.Status == Domain.Enums.RoomStatus.Active || r.Status == Domain.Enums.RoomStatus.Available));
+                .Where(r => !r.IsDeleted && (r.Status == Domain.Enums.RoomStatus.Active || r.Status == Domain.Enums.RoomStatus.Available) && r.IsPublished == true);
 
             if (!string.IsNullOrWhiteSpace(keyword))
             {

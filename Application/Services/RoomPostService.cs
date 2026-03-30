@@ -79,7 +79,8 @@ namespace Application.Services
                 CreatedAt = r.CreatedAt,
                 RoomNumber = r.RoomNumber,
                 RoomType = r.RoomType,
-                AmenityCount = r.RoomAmenities.Count
+                AmenityCount = r.RoomAmenities.Count,
+                MainPhotoUrl = r.RoomPhotos?.FirstOrDefault(p => p.IsMain)?.Url ?? r.RoomPhotos?.OrderBy(p => p.DisplayOrder).FirstOrDefault()?.Url
             });
         }
 
