@@ -1,4 +1,4 @@
-﻿@model List<Application.DTOs.Billing.RoomUtilityInputViewModel>
+@model List<Application.DTOs.Billing.RoomUtilityInputViewModel>
 @{
     ViewData["Title"] = "Chốt Điện Nước & Tính Tiền";
     var buildings = ViewBag.Buildings as List<Application.DTOs.Buildings.BuildingListDto>;
@@ -141,6 +141,7 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // 1. LOGIC EXCEL - TÍNH TOÁN NGAY LÚC GÕ
         document.querySelectorAll('.calc-trigger').forEach(input => {
@@ -230,7 +231,12 @@
             });
 
             if (hasError) {
-                alert("Có phòng nhập sai số điện. Vui lòng kiểm tra lại dòng bôi đỏ!");
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi nhập liệu',
+                    text: 'Có phòng nhập sai số điện. Vui lòng kiểm tra lại dòng bôi đỏ!',
+                    confirmButtonColor: '#3085d6'
+                });
                 return;
             }
 
@@ -253,16 +259,35 @@
                 const data = await response.json();
                 if(data.success) {
                     exportToExcel(); // Gọi hàm sinh file Excel
-                    alert("Chốt số thành công! Đã tự động tải hóa đơn Excel.");
-                    window.location.reload();
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công!',
+                        text: 'Chốt số và lập hóa đơn thành công! Đã tự động tải file Excel.',
+                        showConfirmButton: false,
+                        timer: 2500,
+                        timerProgressBar: true
+                    }).then(() => {
+                        window.location.reload();
+                    });
                 } else {
-                    alert("Lỗi: " + data.message);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Thất bại',
+                        text: "Lỗi: " + data.message,
+                        confirmButtonColor: '#d33'
+                    });
                     btn.innerHTML = `<span class="material-symbols-outlined">send</span> XUẤT HÓA ĐƠN ĐỒNG LOẠT`;
                     btn.disabled = false;
                 }
             } catch (err) {
                 console.error("Lỗi thực tế:", err);
-                alert("Đã xảy ra lỗi hệ thống: " + err.message);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi hệ thống',
+                    text: "Đã xảy ra lỗi hệ thống: " + err.message,
+                    confirmButtonColor: '#d33'
+                });
                 btn.innerHTML = `<span class="material-symbols-outlined">send</span> XUẤT HÓA ĐƠN ĐỒNG LOẠT`;
                 btn.disabled = false;
             }

@@ -31,7 +31,8 @@ namespace Infrastructure
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
                     configuration.GetConnectionString("DefaultConnection"),
-                    b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+                    b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)
+                          .CommandTimeout(120))); // Tăng timeout lên 120s để xử lý lỗi Execution Timeout Expired
 
             // ASP.NET Identity
             services.AddIdentity<ApplicationUser, IdentityRole>(options =>
