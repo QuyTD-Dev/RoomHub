@@ -1,20 +1,77 @@
-﻿@using Domain.Enums
+@using Domain.Enums
 @model List<Application.DTOs.Billing.InvoiceListViewModel>
 @{
     ViewData["Title"] = "Hóa đơn của tôi";
 }
 
 <div class="max-w-5xl mx-auto px-4 py-8 pb-24">
-    <div class="flex items-center gap-3 mb-8">
-        <div class="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
-            <span class="material-symbols-outlined text-3xl">receipt_long</span>
-        </div>
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Hóa đơn của tôi</h1>
-            <p class="text-sm text-gray-500">Xem bảng kê chi tiết và thanh toán tiền phòng hàng tháng.</p>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
+                <span class="material-symbols-outlined text-3xl">receipt_long</span>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Hóa đơn của tôi</h1>
+                <p class="text-sm text-gray-500">Xem bảng kê chi tiết và thanh toán tiền phòng hàng tháng.</p>
+            </div>
         </div>
     </div>
 
+    @{
+        var tenantRooms = ViewBag.TenantRooms as System.Collections.IEnumerable;
+        var selectedRoomId = ViewBag.RoomId as int?;
+    }
+    @if (tenantRooms != null)
+    {
+        <div class="flex flex-wrap items-center gap-2 mb-5">
+            <span class="text-xs font-bold text-gray-500 uppercase tracking-wider mr-1">Lọc theo phòng:</span>
+            <a href="@Url.Action("MyInvoices", "TenantBilling")" class="px-3 py-1.5 rounded-full text-sm font-bold transition-all @(selectedRoomId == null && ViewBag.FilteredByRoom != true ? "bg-orange-500 text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200")">
+                Tất cả
+            </a>
+            @foreach (dynamic room in tenantRooms)
+            {
+                var isSelected = selectedRoomId != null && selectedRoomId == (int)room.Id;
+                <a href="@Url.Action("MyInvoicesByRoom", "TenantBilling", new { roomId = room.Id, from = "myinvoices" })" class="px-3 py-1.5 rounded-full text-sm font-bold transition-all @(isSelected ? "bg-blue-500 text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200")">
+                    Phòng @room.RoomNumber
+                </a>
+            }
+        </div>
+    }
+
+    @if (ViewBag.FilteredByRoom == true)
+    {
+        <div class="mb-6 flex items-center gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+            <a href="@(ViewBag.BackUrl ?? Url.Action("MyInvoices", "TenantBilling"))" class="p-1.5 rounded-lg bg-white border border-blue-100 hover:bg-blue-50 transition-colors">
+                <span class="material-symbols-outlined text-blue-600 text-[20px]">arrow_back</span>
+            </a>
+            <div>
+                <p class="text-xs font-bold text-blue-500 uppercase tracking-wider">Lọc theo phòng</p>
+                <p class="font-bold text-blue-900">Hóa đơn Phòng @ViewBag.RoomNumber</p>
+            </div>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 flex flex-col items-center justify-center text-center">
+            <div class="w-20 h-20 bg-gray-50 text-gray-300 rounded-full flex items-center justify-center mb-4">
+                <span class="material-symbols-outlined text-4xl">receipt_long</span>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Chưa có hóa đơn nào</h3>
+            <p class="text-gray-500 text-sm max-w-xs">
+                @if (ViewBag.FilteredByRoom == true)
+                {
+                    <text>Phòng @ViewBag.RoomNumber chưa có hóa đơn nào được tạo.</text>
+                }
+                else
+                {
+                    <text>Bạn chưa có hóa đơn nào. Hóa đơn sẽ hiện ở đây sau khi chủ nhà chốt số.</text>
+                }
+            </p>
+        </div>
+    }
+    else
+    {
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         @foreach (var inv in Model)
         {
@@ -54,6 +111,7 @@
             </div>
         }
     </div>
+    }
 </div>
 
 <div id="paymentModal" class="fixed inset-0 z-50 hidden bg-gray-900/80 backdrop-blur-sm items-center justify-center">
