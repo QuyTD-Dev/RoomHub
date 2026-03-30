@@ -1,4 +1,4 @@
-﻿using Application.DTOs.Buildings;
+using Application.DTOs.Buildings;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
 using Domain.Entities;
@@ -16,11 +16,12 @@ namespace Web.Controllers
     {
         private readonly IBuildingService _buildingService;
         private readonly IBuildingRepository _buildingRepository;
-
-        public BuildingsController(IBuildingService buildingService, IBuildingRepository buildingRepository)
+        private readonly ICloudinaryService _cloudinaryService;
+        public BuildingsController(IBuildingService buildingService, IBuildingRepository buildingRepository, ICloudinaryService cloudinaryService)
         {
             _buildingService = buildingService;
             _buildingRepository = buildingRepository;
+            _cloudinaryService = cloudinaryService;
         }
 
         // 1. MÀN HÌNH DANH SÁCH TÒA NHÀ
@@ -45,9 +46,12 @@ namespace Web.Controllers
             var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             try
             {
-                // Gọi Service xử lý như bình thường
-                // Lưu ý: Lúc này request.Config.Photos đã chứa các file ảnh bạn tải lên.
-                // Bạn có thể gọi ICloudinaryService ở đây để lưu ảnh lên Cloud, sau đó gán URL vào DB.
+                if (request.Config.Photos != null && request.Config.Photos.Any())
+                {
+                    var file = request.Config.Photos.First();
+                    var uploadResult = await _cloudinaryService.UploadImageAsync(file, "buildings");
+                    request.Config.ThumbnailUrl = uploadResult.Url;
+                }
 
                 int buildingId = await _buildingService.CreateBuildingAsync(ownerId, request.Config, request.Structure);
                 return Json(new { success = true, buildingId = buildingId, message = "Tạo tòa nhà thành công!" });
@@ -55,6 +59,90 @@ namespace Web.Controllers
             catch (Exception ex)
             {
                 return Json(new { success = false, message = "Có lỗi xảy ra: " + ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var building = await _buildingRepository.GetBuildingDetailsAsync(id, ownerId);
+            if (building == null) return NotFound();
+
+            var dto = new UpdateBuildingDto
+            {
+                Id = building.Id,
+                Name = building.Name,
+                Province = building.City, // Note: using City as Province for consistency with Create
+                District = building.District,
+                Ward = building.Ward,
+                StreetAddress = building.Address,
+                ElectricityPrice = building.ElectricityPrice,
+                WaterPrice = building.WaterPrice,
+                InternetPrice = building.InternetPrice,
+                GarbagePrice = building.GarbagePrice,
+                ThumbnailUrl = building.ThumbnailUrl
+            };
+            return View(dto);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditData([FromServices] ApplicationDbContext context, [FromForm] UpdateBuildingDto request)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            try
+            {
+                var building = await context.Buildings.FirstOrDefaultAsync(b => b.Id == request.Id && b.OwnerId == ownerId);
+                if (building == null) return Json(new { success = false, message = "Không tìm thấy tòa nhà hoặc bạn không có quyền sửa." });
+
+                if (request.Photos != null && request.Photos.Any())
+                {
+                    var file = request.Photos.First();
+                    var uploadResult = await _cloudinaryService.UploadImageAsync(file, "buildings");
+                    building.ThumbnailUrl = uploadResult.Url;
+                }
+
+                building.Name = request.Name;
+                building.Province = request.Province;
+                building.City = request.Province;
+                building.District = request.District;
+                building.Ward = request.Ward;
+                building.Address = request.StreetAddress;
+                building.ElectricityPrice = request.ElectricityPrice;
+                building.WaterPrice = request.WaterPrice;
+                building.InternetPrice = request.InternetPrice;
+                building.GarbagePrice = request.GarbagePrice;
+                building.UpdatedAt = DateTime.UtcNow;
+
+                await context.SaveChangesAsync();
+                return Json(new { success = true, buildingId = building.Id, message = "Cập nhật tòa nhà thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Có lỗi xảy ra: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            try
+            {
+                bool success = await _buildingRepository.DeleteBuildingAsync(id, ownerId);
+                
+                if (success)
+                    return Json(new { success = true, message = "Đã xóa tòa nhà thành công." });
+                else
+                    return Json(new { success = false, message = "Không tìm thấy tòa nhà hoặc bạn không có quyền thao tác." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống khi xóa tòa nhà. Vui lòng thử lại sau." });
             }
         }
 
@@ -101,7 +189,71 @@ namespace Web.Controllers
             await context.SaveChangesAsync();
             return Json(new { success = true, message = "Lưu cài đặt phòng thành công!" });
         }
+        [HttpGet]
+        public async Task<IActionResult> GetContractDetails([FromServices] ApplicationDbContext context, int roomId)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var contract = await context.Contracts
+                .Include(c => c.Tenant)
+                .Where(c => c.RoomId == roomId && c.OwnerId == ownerId && c.Status == Domain.Enums.ContractStatus.Active)
+                .OrderByDescending(c => c.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (contract == null) return Json(new { success = false, message = "Không tìm thấy hợp đồng đang hoạt động cho phòng này." });
+
+            return Json(new { 
+                success = true, 
+                data = new {
+                    tenantName = contract.Tenant.FullName,
+                    tenantPhone = contract.Tenant.PhoneNumber,
+                    tenantEmail = contract.Tenant.Email,
+                    startDate = contract.StartDate.ToString("dd/MM/yyyy"),
+                    endDate = contract.EndDate.ToString("dd/MM/yyyy"),
+                    rentAmount = contract.RentAmount,
+                    depositAmount = contract.DepositAmount,
+                    status = contract.Status.ToString()
+                }
+            });
+        }
+
         [HttpPost]
+        public async Task<IActionResult> CheckoutRoom([FromServices] ApplicationDbContext context, [FromBody] CheckoutRoomRequest request)
+        {
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try
+            {
+                var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                var room = await context.Rooms.FirstOrDefaultAsync(r => r.Id == request.RoomId && r.LandlordId == ownerId);
+                if (room == null) return Json(new { success = false, message = "Phòng không hợp lệ." });
+
+                if (room.Status != Domain.Enums.RoomStatus.Occupied)
+                    return Json(new { success = false, message = "Phòng chưa được cho thuê." });
+
+                var contract = await context.Contracts
+                    .Where(c => c.RoomId == room.Id && c.OwnerId == ownerId && c.Status == Domain.Enums.ContractStatus.Active)
+                    .OrderByDescending(c => c.CreatedAt)
+                    .FirstOrDefaultAsync();
+
+                if (contract != null)
+                {
+                    contract.Status = Domain.Enums.ContractStatus.Liquidated;
+                    contract.EndDate = DateTime.UtcNow.ToLocalTime();
+                }
+
+                room.Status = Domain.Enums.RoomStatus.Available; 
+                
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Json(new { success = true, message = "Đã báo trả phòng thành công và thanh lý hợp đồng. Trạng thái phòng được chuyển về Còn trống." });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return Json(new { success = false, message = "Lỗi xử lý hệ thống: " + ex.Message });
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> AddDirectTenant(
             [FromServices] Infrastructure.Persistence.ApplicationDbContext context,
@@ -135,9 +287,15 @@ namespace Web.Controllers
                         string identityErrors = string.Join(", ", result.Errors.Select(e => e.Description));
                         return Json(new { success = false, message = "Lỗi tạo tài khoản: " + identityErrors });
                     }
-
-                    // (Tùy chọn) Gán luôn quyền Tenant cho khách này để họ có thể đăng nhập xài App
-                    // await userManager.AddToRoleAsync(tenantUser, "Tenant");
+                }
+                else
+                {
+                    // Update the details if the tenant already exists
+                    tenantUser.PhoneNumber = request.PhoneNumber;
+                    if (!string.IsNullOrWhiteSpace(request.FullName))
+                        tenantUser.FullName = request.FullName;
+                    
+                    await userManager.UpdateAsync(tenantUser);
                 }
 
                 // 2. Đổi trạng thái Phòng thành Đang Thuê
@@ -150,7 +308,7 @@ namespace Web.Controllers
                     TenantId = tenantUser.Id,
                     OwnerId = ownerId!,
                     StartDate = request.StartDate,
-                    EndDate = request.StartDate.AddMonths(6),
+                    EndDate = request.EndDate,
                     RentAmount = request.RentalPrice,
                     DepositAmount = request.DepositAmount,
                     Status = Domain.Enums.ContractStatus.Active,
@@ -220,6 +378,26 @@ namespace Web.Controllers
         public decimal RentalPrice { get; set; }
         public decimal DepositAmount { get; set; }
         public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
         public decimal InitialElec { get; set; }
+    }
+    public class CheckoutRoomRequest
+    {
+        public int RoomId { get; set; }
+    }
+    public class UpdateBuildingDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = null!;
+        public string Province { get; set; } = null!;
+        public string District { get; set; } = null!;
+        public string Ward { get; set; } = null!;
+        public string StreetAddress { get; set; } = null!;
+        public decimal ElectricityPrice { get; set; }
+        public decimal WaterPrice { get; set; }
+        public decimal InternetPrice { get; set; }
+        public decimal GarbagePrice { get; set; }
+        public string? ThumbnailUrl { get; set; }
+        public List<IFormFile>? Photos { get; set; }
     }
 }

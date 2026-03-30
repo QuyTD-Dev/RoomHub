@@ -1,4 +1,4 @@
-﻿using Application.DTOs.RoomPosts;
+using Application.DTOs.RoomPosts;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
 using Domain.Entities;
@@ -50,6 +50,7 @@ namespace Application.Services
                 BasePrice = f.Room.BasePrice,
                 SurfaceArea = f.Room.SurfaceArea,
                 LandlordId = f.Room.LandlordId ?? string.Empty, 
+                MainPhotoUrl = f.Room.RoomPhotos?.FirstOrDefault(p => p.IsMain)?.Url ?? f.Room.RoomPhotos?.FirstOrDefault()?.Url ?? "",
                 IsFavorite = true 
             }).ToList();
         }

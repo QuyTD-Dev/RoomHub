@@ -1,0 +1,272 @@
+@model Web.Controllers.UpdateBuildingDto
+@{
+    ViewData["Title"] = "Chỉnh sửa Tòa nhà";
+}
+
+<div class="max-w-3xl mx-auto px-4 py-6 pb-24">
+
+    <div class="flex items-center gap-4 mb-6">
+        <a href="@Url.Action("Index")" class="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-all">
+            <span class="material-symbols-outlined">arrow_back</span>
+        </a>
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">Chỉnh sửa Tòa nhà</h2>
+            <p class="text-sm text-gray-500">Cập nhật thông tin chung và bảng giá dịch vụ</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
+
+        <input type="hidden" id="b-id" value="@Model.Id" />
+
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Tên tòa nhà <span class="text-red-500">*</span></label>
+            <input type="text" id="b-name" value="@Model.Name" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-orange-500 outline-none transition-all" placeholder="Ví dụ: Chung cư mini Hoa Hồng" />
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Tỉnh/Thành phố <span class="text-red-500">*</span></label>
+                <select id="b-province" onchange="loadDistricts()" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 cursor-pointer">
+                    <option value="">-- Đang tải... --</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Quận/Huyện <span class="text-red-500">*</span></label>
+                <select id="b-district" onchange="loadWards()" disabled class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                    <option value="">-- Chọn Quận/Huyện --</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Phường/Xã <span class="text-red-500">*</span></label>
+                <select id="b-ward" disabled class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                    <option value="">-- Chọn Phường/Xã --</option>
+                </select>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Số nhà, Tên đường <span class="text-red-500">*</span></label>
+            <input type="text" id="b-address" value="@Model.StreetAddress" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400" />
+        </div>
+
+        <hr class="border-gray-100" />
+        <h3 class="font-bold text-gray-900">Bảng giá dịch vụ chung</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">Giá Điện (đ/Kwh)</label>
+                <input type="number" id="b-elec" value="@Model.ElectricityPrice" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg" />
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">Giá Nước (đ/Người)</label>
+                <input type="number" id="b-water" value="@Model.WaterPrice" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg" />
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">Wifi (đ/Tháng)</label>
+                <input type="number" id="b-internet" value="@Model.InternetPrice" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg" />
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1">Rác (đ/Tháng)</label>
+                <input type="number" id="b-garbage" value="@Model.GarbagePrice" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg" />
+            </div>
+        </div>
+
+        <hr class="border-gray-100" />
+        <h3 class="font-bold text-gray-900">Ảnh đại diện Tòa nhà</h3>
+        <div>
+            @if (!string.IsNullOrEmpty(Model.ThumbnailUrl))
+            {
+                <div class="mb-4 flex items-center gap-4">
+                    <img src="@Model.ThumbnailUrl" class="w-24 h-24 rounded-lg object-cover border border-gray-200 shadow-sm" alt="Ảnh hiện tại" />
+                    <p class="text-sm text-gray-500">Ảnh hiện tại. Tải ảnh mới lên để thay thế.</p>
+                </div>
+            }
+            <div class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-400 px-6 py-8 hover:bg-gray-50 transition-colors">
+                <div class="text-center">
+                    <span class="material-symbols-outlined text-3xl text-gray-300">photo_library</span>
+                    <div class="mt-3 flex text-sm leading-6 text-gray-600 justify-center">
+                        <label for="b-photos" class="relative cursor-pointer rounded-md bg-white font-semibold text-orange-600 hover:text-orange-500">
+                            <span>Tải ảnh mới lên</span>
+                            <input id="b-photos" type="file" accept="image/*" class="sr-only" onchange="previewNewImage(event)">
+                        </label>
+                        <p class="pl-1">hoặc kéo thả vào đây</p>
+                    </div>
+                    <p class="text-xs text-gray-500">PNG, JPG tối đa 10MB</p>
+                </div>
+            </div>
+            <div id="new-image-preview" class="mt-4 hidden">
+                <img id="new-image-thumb" class="w-24 h-24 rounded-lg object-cover border border-orange-400 shadow-sm" />
+                <p class="text-xs text-green-600 mt-1">Ảnh mới đã chọn</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex justify-end gap-4 z-50">
+        <a href="@Url.Action("Index")" class="px-6 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-all">Hủy bỏ</a>
+        <button onclick="submitEdit()" id="btn-submit" class="bg-orange-500 text-white px-8 py-2.5 rounded-lg font-bold shadow-md shadow-orange-500/30 hover:bg-orange-600 transition-all flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm">save</span> Lưu thay đổi
+        </button>
+    </div>
+</div>
+
+<div id="successModal" class="fixed inset-0 z-[80] hidden bg-gray-900/60 backdrop-blur-sm items-center justify-center">
+    <div class="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl scale-95 opacity-0 transition-all duration-200" id="successContent">
+        <div class="p-6 text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4 border-4 border-green-50">
+                <span class="material-symbols-outlined text-4xl text-green-500">check_circle</span>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Cập nhật thành công!</h3>
+            <p class="text-sm text-gray-500 mb-6 leading-relaxed">Thông tin tòa nhà đã được lưu lại.</p>
+            <button onclick="window.location.href='/Buildings'" class="w-full bg-green-500 text-white font-bold py-2.5 px-4 rounded-xl hover:bg-green-600 transition-colors shadow-md shadow-green-200 text-sm">
+                Quay về Danh sách
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Dữ liệu cũ để auto-select khi load trang
+    const savedProvince = '@Model.Province';
+    const savedDistrict = '@Model.District';
+    const savedWard = '@Model.Ward';
+
+    // 1. TẢI TỈNH THÀNH VÀ AUTO-SELECT GIÁ TRỊ CŨ
+    document.addEventListener("DOMContentLoaded", function () {
+        fetch('https://esgoo.net/api-tinhthanh/1/0.htm')
+            .then(res => res.json())
+            .then(data => {
+                if (data.error === 0) {
+                    let html = '<option value="">-- Chọn Tỉnh/Thành --</option>';
+                    data.data.forEach(p => {
+                        const selected = p.full_name === savedProvince ? 'selected' : '';
+                        html += `<option value="${p.full_name}" data-id="${p.id}" ${selected}>${p.full_name}</option>`;
+                    });
+                    document.getElementById('b-province').innerHTML = html;
+
+                    // Nếu có tỉnh cũ, tải tiếp quận
+                    if (savedProvince) loadDistricts(true);
+                }
+            });
+    });
+
+    function loadDistricts(isInit = false) {
+        const provSelect = document.getElementById('b-province');
+        const distSelect = document.getElementById('b-district');
+        const wardSelect = document.getElementById('b-ward');
+
+        const selectedOption = provSelect.options[provSelect.selectedIndex];
+        const provId = selectedOption?.getAttribute('data-id');
+
+        distSelect.innerHTML = '<option value="">-- Chọn Quận/Huyện --</option>';
+        distSelect.disabled = true;
+        wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
+        wardSelect.disabled = true;
+
+        if (!provId) return;
+
+        fetch(`https://esgoo.net/api-tinhthanh/2/${provId}.htm`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.error === 0) {
+                    let html = '<option value="">-- Chọn Quận/Huyện --</option>';
+                    data.data.forEach(d => {
+                        const selected = isInit && d.full_name === savedDistrict ? 'selected' : '';
+                        html += `<option value="${d.full_name}" data-id="${d.id}" ${selected}>${d.full_name}</option>`;
+                    });
+                    distSelect.innerHTML = html;
+                    distSelect.disabled = false;
+                    if (isInit && savedDistrict) loadWards(true);
+                }
+            });
+    }
+
+    function loadWards(isInit = false) {
+        const distSelect = document.getElementById('b-district');
+        const wardSelect = document.getElementById('b-ward');
+
+        const selectedOption = distSelect.options[distSelect.selectedIndex];
+        const distId = selectedOption?.getAttribute('data-id');
+
+        wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
+        wardSelect.disabled = true;
+
+        if (!distId) return;
+
+        fetch(`https://esgoo.net/api-tinhthanh/3/${distId}.htm`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.error === 0) {
+                    let html = '<option value="">-- Chọn Phường/Xã --</option>';
+                    data.data.forEach(w => {
+                        const selected = isInit && w.full_name === savedWard ? 'selected' : '';
+                        html += `<option value="${w.full_name}" data-id="${w.id}" ${selected}>${w.full_name}</option>`;
+                    });
+                    wardSelect.innerHTML = html;
+                    wardSelect.disabled = false;
+                }
+            });
+    }
+
+    function previewNewImage(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById('new-image-thumb').src = e.target.result;
+            document.getElementById('new-image-preview').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async function submitEdit() {
+        const btn = document.getElementById('btn-submit');
+        btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-sm">sync</span> Đang lưu...`;
+        btn.disabled = true;
+
+        const formData = new FormData();
+        formData.append('Id', document.getElementById('b-id').value);
+        formData.append('Name', document.getElementById('b-name').value);
+        formData.append('Province', document.getElementById('b-province').value);
+        formData.append('District', document.getElementById('b-district').value);
+        formData.append('Ward', document.getElementById('b-ward').value);
+        formData.append('StreetAddress', document.getElementById('b-address').value);
+        formData.append('ElectricityPrice', document.getElementById('b-elec').value);
+        formData.append('WaterPrice', document.getElementById('b-water').value);
+        formData.append('InternetPrice', document.getElementById('b-internet').value);
+        formData.append('GarbagePrice', document.getElementById('b-garbage').value);
+
+        const photoInput = document.getElementById('b-photos');
+        if (photoInput.files.length > 0) {
+            formData.append('Photos', photoInput.files[0]);
+        }
+
+        try {
+            const response = await fetch('/Buildings/EditData', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                const sModal = document.getElementById('successModal');
+                const sContent = document.getElementById('successContent');
+                sModal.classList.remove('hidden');
+                sModal.classList.add('flex');
+                setTimeout(() => {
+                    sContent.classList.remove('scale-95', 'opacity-0');
+                    sContent.classList.add('scale-100', 'opacity-100');
+                }, 10);
+            } else {
+                alert("Lỗi: " + data.message);
+                btn.innerHTML = `<span class="material-symbols-outlined text-sm">save</span> Lưu thay đổi`;
+                btn.disabled = false;
+            }
+        } catch (err) {
+            alert("Lỗi kết nối Server.");
+            btn.innerHTML = `<span class="material-symbols-outlined text-sm">save</span> Lưu thay đổi`;
+            btn.disabled = false;
+        }
+    }
+</script>
+}

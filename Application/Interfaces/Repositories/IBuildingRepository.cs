@@ -1,4 +1,4 @@
-﻿using Domain.Entities;
+using Domain.Entities;
 
 namespace Application.Interfaces.Repositories
 {
@@ -12,5 +12,8 @@ namespace Application.Interfaces.Repositories
 
         // Lưu Tòa nhà, Tầng, Phòng vào Database cùng lúc (Sử dụng Transaction)
         Task<Building> CreateBuildingWithStructureAsync(Building building, List<Floor> floors, List<Room> rooms);
+
+        // Xóa Tòa nhà (Chỉ cho phép khi không có phòng nào đang có khách)
+        Task<bool> DeleteBuildingAsync(int buildingId, string ownerId);
     }
 }

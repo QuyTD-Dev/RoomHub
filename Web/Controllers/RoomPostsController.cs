@@ -27,7 +27,7 @@ namespace Web.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Index(string? q, string? province, Domain.Enums.RoomType? roomType, decimal? minPrice, decimal? maxPrice, string? district, string? sortBy, int page = 1)
         {
-            int pageSize = 9;
+            int pageSize = 12;
             var paginatedRooms = await _roomPostService.GetAllRoomsAsync(q, province, roomType, minPrice, maxPrice, district, sortBy, page, pageSize);
 
             ViewBag.isSearching = !string.IsNullOrWhiteSpace(q) || !string.IsNullOrWhiteSpace(province) || roomType.HasValue || minPrice.HasValue || maxPrice.HasValue || !string.IsNullOrWhiteSpace(district);
@@ -81,11 +81,16 @@ namespace Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Create()
+        public async Task<IActionResult> Create(int? roomId = null)
         {
             var userId = GetUserId();
             // Gọi service để lấy ra danh sách các phòng "Trống & Chưa xuất bản"
             var viewModel = await _roomPostService.GetCreateViewModelAsync(userId);
+            
+            if (roomId.HasValue)
+            {
+                viewModel.SelectedRoomId = roomId.Value;
+            }
 
             // Trả ViewModel mới này ra View
             return View(viewModel);

@@ -33,5 +33,6 @@ namespace Application.DTOs.Buildings
 
         // Hình ảnh tổng quan của tòa nhà
         public List<IFormFile>? Photos { get; set; }
+        public string? ThumbnailUrl { get; set; }
     }
 }
