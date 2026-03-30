@@ -229,8 +229,9 @@ namespace Web.Controllers
                 if (room.Status != Domain.Enums.RoomStatus.Occupied)
                     return Json(new { success = false, message = "Phòng chưa được cho thuê." });
 
+                // Thanh lý hợp đồng Active hoặc Draft
                 var contract = await context.Contracts
-                    .Where(c => c.RoomId == room.Id && c.OwnerId == ownerId && c.Status == Domain.Enums.ContractStatus.Active)
+                    .Where(c => c.RoomId == room.Id && c.OwnerId == ownerId && (c.Status == Domain.Enums.ContractStatus.Active || c.Status == Domain.Enums.ContractStatus.Draft))
                     .OrderByDescending(c => c.CreatedAt)
                     .FirstOrDefaultAsync();
 
@@ -254,6 +255,67 @@ namespace Web.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> CheckTenant(string email, [FromServices] UserManager<Domain.Entities.ApplicationUser> userManager)
+        {
+            var user = await userManager.FindByEmailAsync(email?.Trim());
+            if (user != null)
+            {
+                return Json(new { exists = true, fullName = user.FullName, phone = user.PhoneNumber, email = user.Email });
+            }
+            return Json(new { exists = false });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetInvitationDetails(int roomId, [FromServices] Infrastructure.Persistence.ApplicationDbContext context)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var contract = await context.Contracts
+                .Include(c => c.Tenant)
+                .Include(c => c.Room)
+                .FirstOrDefaultAsync(c => c.RoomId == roomId && c.OwnerId == ownerId && c.Status == Domain.Enums.ContractStatus.Draft);
+
+            if (contract == null) return Json(new { success = false, message = "Không tìm thấy lời mời." });
+
+            return Json(new { 
+                success = true, 
+                data = new {
+                    fullName = contract.Tenant?.FullName ?? "Khách vãng lai",
+                    email = contract.Tenant?.Email,
+                    phone = contract.Tenant?.PhoneNumber,
+                    rentalPrice = contract.RentAmount,
+                    depositAmount = contract.DepositAmount,
+                    startDate = contract.StartDate.ToString("dd/MM/yyyy"),
+                    endDate = contract.EndDate.ToString("dd/MM/yyyy")
+                } 
+            });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CancelInvitation(int roomId, [FromServices] Infrastructure.Persistence.ApplicationDbContext context)
+        {
+            var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var room = await context.Rooms.FirstOrDefaultAsync(r => r.Id == roomId && r.LandlordId == ownerId);
+            if (room == null) return Json(new { success = false, message = "Phòng không hợp lệ." });
+
+            var contract = await context.Contracts
+                .FirstOrDefaultAsync(c => c.RoomId == roomId && c.OwnerId == ownerId && c.Status == Domain.Enums.ContractStatus.Draft);
+
+            if (contract != null)
+            {
+                // Xóa chỉ số điện nước nháp
+                var readings = await context.UtilityReadings.Where(u => u.ContractId == contract.Id).ToListAsync();
+                if (readings.Any()) context.UtilityReadings.RemoveRange(readings);
+
+                context.Contracts.Remove(contract);
+            }
+
+            room.Status = Domain.Enums.RoomStatus.Available;
+            await context.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Đã hủy lời mời thành công." });
+        }
+
         [HttpPost]
         public async Task<IActionResult> AddDirectTenant(
             [FromServices] Infrastructure.Persistence.ApplicationDbContext context,
@@ -264,14 +326,17 @@ namespace Web.Controllers
             try
             {
                 var ownerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                var room = await context.Rooms.FirstOrDefaultAsync(r => r.Id == request.RoomId && r.LandlordId == ownerId);
+                var room = await context.Rooms.Include(r => r.Floor).ThenInclude(f => f.Building).FirstOrDefaultAsync(r => r.Id == request.RoomId && r.LandlordId == ownerId);
                 if (room == null) return Json(new { success = false, message = "Phòng không hợp lệ." });
 
-                // 1. Kiểm tra Khách đã có tài khoản chưa dựa vào SĐT. Nếu chưa -> Tạo tài khoản Khách (Guest)
                 // 1. Kiểm tra Khách đã có tài khoản chưa dựa vào EMAIL (Khóa chính)
-                var tenantUser = await userManager.FindByEmailAsync(request.Email);
-                if (tenantUser == null)
+                var emailNormalized = request.Email?.Trim().ToLower();
+                var tenantUser = await userManager.FindByEmailAsync(emailNormalized);
+                bool isOnlineUser = tenantUser != null;
+
+                if (!isOnlineUser)
                 {
+                    // Nếu khách chưa có tài khoản -> Tạo tài khoản Khách vãng lai (Guest)
                     tenantUser = new Domain.Entities.ApplicationUser
                     {
                         UserName = request.Email, // Bắt buộc dùng Email làm UserName
@@ -288,18 +353,9 @@ namespace Web.Controllers
                         return Json(new { success = false, message = "Lỗi tạo tài khoản: " + identityErrors });
                     }
                 }
-                else
-                {
-                    // Update the details if the tenant already exists
-                    tenantUser.PhoneNumber = request.PhoneNumber;
-                    if (!string.IsNullOrWhiteSpace(request.FullName))
-                        tenantUser.FullName = request.FullName;
-                    
-                    await userManager.UpdateAsync(tenantUser);
-                }
 
-                // 2. Đổi trạng thái Phòng thành Đang Thuê
-                room.Status = Domain.Enums.RoomStatus.Occupied;
+                // 2. Đổi trạng thái Phòng: Khách online -> PendingApproval (Màu vàng). Khách vãng lai -> Occupied (Xanh).
+                room.Status = isOnlineUser ? Domain.Enums.RoomStatus.PendingApproval : Domain.Enums.RoomStatus.Occupied;
 
                 // 3. Khởi tạo Hợp đồng (Contract)
                 var contract = new Domain.Entities.Contract
@@ -311,11 +367,28 @@ namespace Web.Controllers
                     EndDate = request.EndDate,
                     RentAmount = request.RentalPrice,
                     DepositAmount = request.DepositAmount,
-                    Status = Domain.Enums.ContractStatus.Active,
+                    // [QUAN TRỌNG]: Khách dùng web -> Draft (Chờ xác nhận). Khách vãng lai -> Active luôn.
+                    Status = isOnlineUser ? Domain.Enums.ContractStatus.Draft : Domain.Enums.ContractStatus.Active,
                     CreatedAt = DateTime.UtcNow
                 };
                 context.Contracts.Add(contract);
                 await context.SaveChangesAsync(); // Cần lưu trước để lấy ContractId
+
+                // Nếu là khách dùng web, tạo Notification để báo họ xác nhận
+                if (isOnlineUser)
+                {
+                    var notification = new Domain.Entities.Notification
+                    {
+                        UserId = tenantUser.Id,
+                        Type = "ContractAssign",
+                        Title = "Mời nhận phòng",
+                        Content = $"Chủ nhà đã thêm bạn vào Phòng P.{room.RoomNumber}, Tòa nhà {room.Floor?.Building?.Name ?? "của họ"}. Nhấn vào đây để xem và xác nhận.",
+                        LinkedId = contract.Id,
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    context.Notifications.Add(notification);
+                }
 
                 // 4. Chốt số Điện Nước đầu kỳ
                 var elecReading = new Domain.Entities.UtilityReading
@@ -330,7 +403,7 @@ namespace Web.Controllers
                 };
 
                 
-                context.UtilityReadings.AddRange(elecReading);
+                context.UtilityReadings.Add(elecReading);
 
                 // 5. Hoàn tất toàn bộ
                 await context.SaveChangesAsync();

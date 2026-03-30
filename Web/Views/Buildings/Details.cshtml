@@ -6,6 +6,7 @@
     int totalRooms = allRooms.Count;
     int availableRooms = allRooms.Count(r => r.Status == RoomStatus.Available);
     int occupiedRooms = allRooms.Count(r => r.Status == RoomStatus.Occupied);
+    int pendingRooms = allRooms.Count(r => r.Status == RoomStatus.PendingApproval);
 }
 
 <div class="max-w-[1200px] mx-auto px-4 py-8">
@@ -20,35 +21,45 @@
             </p>
         </div>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         
-        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
             <div>
-                <p class="text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Tổng số phòng</p>
-                <h3 class="text-4xl font-black text-gray-900">@totalRooms</h3>
+                <p class="text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-widest">Tổng số phòng</p>
+                <h3 class="text-3xl font-black text-gray-900">@totalRooms</h3>
             </div>
-            <div class="w-14 h-14 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
-                <span class="material-symbols-outlined text-3xl">apartment</span>
+            <div class="w-11 h-11 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
+                <span class="material-symbols-outlined text-2xl">apartment</span>
             </div>
         </div>
         
-        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
             <div>
-                <p class="text-xs font-bold text-orange-500 mb-1 uppercase tracking-wider">Đang thuê</p>
-                <h3 class="text-4xl font-black text-orange-600">@occupiedRooms</h3>
+                <p class="text-[10px] font-bold text-blue-500 mb-1 uppercase tracking-widest">Đang thuê</p>
+                <h3 class="text-3xl font-black text-blue-600">@occupiedRooms</h3>
             </div>
-            <div class="w-14 h-14 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center">
-                <span class="material-symbols-outlined text-3xl">vpn_key</span>
+            <div class="w-11 h-11 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
+                <span class="material-symbols-outlined text-2xl">vpn_key</span>
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+        <div class="bg-white p-5 rounded-2xl border border-yellow-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
             <div>
-                <p class="text-xs font-bold text-green-500 mb-1 uppercase tracking-wider">Phòng trống</p>
-                <h3 class="text-4xl font-black text-green-600">@availableRooms</h3>
+                <p class="text-[10px] font-bold text-yellow-600 mb-1 uppercase tracking-widest">Đợi phản hồi</p>
+                <h3 class="text-3xl font-black text-yellow-600">@pendingRooms</h3>
             </div>
-            <div class="w-14 h-14 rounded-full bg-green-50 text-green-500 flex items-center justify-center">
-                <span class="material-symbols-outlined text-3xl">meeting_room</span>
+            <div class="w-11 h-11 rounded-full bg-yellow-50 text-yellow-600 flex items-center justify-center">
+                <span class="material-symbols-outlined text-2xl">schedule</span>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-green-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
+            <div>
+                <p class="text-[10px] font-bold text-green-500 mb-1 uppercase tracking-widest">Phòng trống</p>
+                <h3 class="text-3xl font-black text-green-600">@availableRooms</h3>
+            </div>
+            <div class="w-11 h-11 rounded-full bg-green-50 text-green-500 flex items-center justify-center">
+                <span class="material-symbols-outlined text-2xl">meeting_room</span>
             </div>
         </div>
 
@@ -59,6 +70,9 @@
         </div>
         <div class="flex items-center gap-2 text-sm font-medium">
             <div class="w-4 h-4 rounded bg-blue-50 border border-blue-200"></div> Đang thuê
+        </div>
+        <div class="flex items-center gap-2 text-sm font-medium">
+            <div class="w-4 h-4 rounded bg-yellow-50 border border-yellow-200"></div> Chờ xác nhận
         </div>
         <div class="flex items-center gap-2 text-sm font-medium">
             <div class="w-4 h-4 rounded bg-orange-50 border border-orange-200"></div> Đang bảo trì
@@ -93,7 +107,14 @@
                             statusText = "Đang thuê";
                             icon = "person";
                         }
-                        else if (room.Status == RoomStatus.UnderMaintenance) // Sửa chữ Maintenance thành UnderMaintenance
+                        else if (room.Status == RoomStatus.PendingApproval)
+                        {
+                            bgClass = "bg-yellow-50 border-yellow-300";
+                            titleColor = "text-yellow-700";
+                            statusText = "Chờ xác nhận";
+                            icon = "hourglass_empty";
+                        }
+                        else if (room.Status == RoomStatus.UnderMaintenance || room.Status == RoomStatus.Maintenance)
                         {
                             bgClass = "bg-orange-50 border-orange-200";
                             titleColor = "text-orange-800";
@@ -116,6 +137,13 @@
                                     Thêm khách / Đăng tin
                                 </div>
                             }
+                            else if (room.Status == RoomStatus.PendingApproval)
+                            {
+                                <p class="text-sm font-bold text-yellow-700 mt-4 flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[18px] animate-pulse">sync_problem</span>
+                                    Đợi khách xác nhận...
+                                </p>
+                            }
                             else
                             {
                                 <p class="text-sm font-medium text-gray-700 truncate">Khách: ...</p>
@@ -133,6 +161,11 @@
                                     </button>
                                     <a href="/RoomPosts/Create?roomId=@room.Id" class="bg-white text-gray-900 px-4 py-1.5 rounded font-bold text-xs hover:bg-orange-500 hover:text-white transition-colors w-3/4 flex items-center justify-center">Đăng lên Web</a>
                                     <button onclick="openAddTenantModal(@room.Id, '@room.RoomNumber', @room.BasePrice)" class="bg-green-500 text-white px-4 py-1.5 rounded font-bold text-xs hover:bg-green-600 transition-colors w-3/4">Thêm khách luôn</button>
+                                }
+                                else if (room.Status == RoomStatus.PendingApproval)
+                                {
+                                    <button onclick="viewInvitation(@room.Id)" class="bg-yellow-500 text-white px-4 py-1.5 rounded font-bold text-xs hover:bg-yellow-600 transition-colors w-3/4 flex items-center justify-center gap-1"><span class="material-symbols-outlined text-[14px]">visibility</span> Xem Lời Mời</button>
+                                    <button onclick="cancelInvitation(@room.Id)" class="bg-red-500 text-white px-4 py-1.5 rounded font-bold text-xs hover:bg-red-600 transition-colors w-3/4 flex items-center justify-center gap-1"><span class="material-symbols-outlined text-[14px]">cancel</span> Hủy Lời Mời</button>
                                 }
                                 else
                                 {
@@ -244,7 +277,8 @@
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">Email khách thuê <span class="text-red-500">*</span></label>
                         <input type="email" id="t-email" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-green-500" placeholder="VD: khachthue@gmail.com" />
-                        <p class="text-[10px] text-orange-500 mt-1 italic">Hệ thống sẽ dùng Email này để cấp tài khoản.</p>
+                        <div id="t-email-msg" class="mt-1 text-[11px] font-bold"></div>
+                        <p class="text-[10px] text-orange-500 mt-1 italic">Hệ thống sẽ tự nhận diện bạn là khách trên sàn hay tạo mới khách nội bộ.</p>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">Số CCCD (Tùy chọn)</label>
@@ -514,11 +548,54 @@
         setTimeout(() => {
             tenantModal.classList.add('hidden');
             tenantModal.classList.remove('flex');
+            document.getElementById('t-email-msg').innerHTML = ''; // reset
         }, 200);
     }
 
+    document.getElementById('t-email').addEventListener('blur', async function() {
+        const email = this.value.trim();
+        const msgBox = document.getElementById('t-email-msg');
+        const submitBtn = document.getElementById('btn-submitTenant');
+        
+        if (!email) {
+            msgBox.innerHTML = '';
+            submitBtn.innerHTML = `<span class="material-symbols-outlined text-[18px]">how_to_reg</span> Thêm Khách Mới`;
+            return;
+        }
+
+        try {
+            msgBox.innerHTML = '<span class="text-blue-500 flex items-center gap-1 mt-2 mb-1"><span class="material-symbols-outlined text-[14px] animate-spin">sync</span> Đang kiểm tra...</span>';
+            const res = await fetch('/Buildings/CheckTenant?email=' + encodeURIComponent(email));
+            const data = await res.json();
+            if (data.exists) {
+                msgBox.innerHTML = `<span class="text-green-600 flex flex-col gap-0.5 mt-2 mb-1">
+                    <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">check_circle</span> Đã tìm thấy tài khoản chính xác:</span>
+                    <span class="ml-5 font-extrabold text-blue-700">Name: ${data.fullName}</span>
+                    <span class="ml-5 font-bold text-gray-500 italic">Email: ${data.email}</span>
+                </span>`;
+                // Auto-fill Tên và SĐT
+                document.getElementById('t-name').value = data.fullName;
+                document.getElementById('t-phone').value = data.phone || '';
+                
+                submitBtn.innerHTML = `<span class="material-symbols-outlined text-[18px]">send</span> Gửi Yêu Cầu Xác Nhận`;
+                submitBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            } else {
+                msgBox.innerHTML = `<span class="text-orange-500 flex items-center gap-1 mt-2 mb-1"><span class="material-symbols-outlined text-[14px]">warning</span> Email này chưa có TK (Sẽ tạo khách vãng lai)</span>`;
+                submitBtn.innerHTML = `<span class="material-symbols-outlined text-[18px]">how_to_reg</span> Thêm Khách Mới`;
+                submitBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                submitBtn.classList.add('bg-green-500', 'hover:bg-green-600');
+            }
+        } catch(err) {
+            msgBox.innerHTML = '';
+        }
+    });
+
     async function submitTenant() {
         const btn = document.getElementById('btn-submitTenant');
+        
+        // Lưu trạng thái ngay từ đầu trước khi text của nút bị thay đổi thành "Đang xử lý..."
+        const isOnline = btn.innerHTML.includes('Gửi');
         
         // Validate cơ bản
         const phone = document.getElementById('t-phone').value;
@@ -557,15 +634,146 @@
             
             const data = await response.json();
             if(data.success) {
-                showSuccessModal("Hợp đồng Đã Ký!", "Khách đã được đưa vào phòng thành công. Hệ thống đã lưu trữ hợp đồng và chốt chỉ số điện đầu kỳ.");
+                // Kiểm tra biến isOnline đã lưu ở đầu hàm thay vì check lại DOM
+                if (isOnline) {
+                    showSuccessModal("Đã gửi yêu cầu!", "Đã gửi thông báo xác nhận thuê phòng cho khách hàng thông qua hệ thống.");
+                } else {
+                    showSuccessModal("Hoàn Tất!", "Đã thêm khách vãng lai và chốt chỉ số điện đầu kỳ vào hợp đồng thành công.");
+                }
             } else {
                 alert("Lỗi: " + data.message);
             }
         } catch (err) {
             alert("Lỗi kết nối Server.");
         } finally {
-            btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">how_to_reg</span> Thêm Khách Mới`;
+            if(document.getElementById('t-email-msg').innerHTML.includes('Gửi')) {
+                btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">send</span> Gửi Yêu Cầu Xác Nhận`;
+            } else {
+                btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">how_to_reg</span> Thêm Khách Mới`;
+            }
             btn.disabled = false;
+        }
+    }
+
+    async function viewInvitation(roomId) {
+        // Tận dùng ViewContractModal để hiện thông tin lời mời
+        vcBody.innerHTML = '<div class="flex justify-center my-8"><span class="material-symbols-outlined animate-spin text-4xl text-blue-500">sync</span></div>';
+        
+        vcModal.classList.remove('hidden');
+        vcModal.classList.add('flex');
+        setTimeout(() => {
+            vcContent.classList.remove('scale-100', 'opacity-100');
+            vcContent.classList.add('scale-100', 'opacity-100');
+        }, 10);
+
+        try {
+            const res = await fetch('/Buildings/GetInvitationDetails?roomId=' + roomId);
+            const data = await res.json();
+            if (data.success) {
+                const d = data.data;
+                vcBody.innerHTML = `
+                    <div class="mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-amber-100 p-2 rounded-full border border-amber-200">
+                                <span class="material-symbols-outlined text-amber-600">handshake</span>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-amber-900 leading-tight">Yêu Cầu Chờ Xác Nhận</h4>
+                                <p class="text-[11px] text-amber-700 font-medium">Hệ thống đang đợi phản hồi từ khách thuê thông qua thông báo web.</p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 bg-amber-200 text-amber-800 text-[10px] font-extrabold rounded-full uppercase tracking-widest shadow-sm">PENDING</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-8 px-2">
+                        <div class="space-y-5">
+                            <h4 class="font-bold text-sm text-gray-900 border-b pb-2 flex items-center gap-2">
+                                <span class="w-2 h-2 bg-blue-500 rounded-full"></span> Đối Tác Được Mời
+                            </h4>
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold border border-blue-200 shadow-sm">
+                                    ${d.fullName.charAt(0)}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-[11px] text-gray-400 font-bold uppercase tracking-tighter">Họ và tên</p>
+                                    <p class="font-extrabold text-gray-900 truncate">${d.fullName}</p>
+                                </div>
+                            </div>
+                            <div class="pl-2 space-y-3">
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-[18px] text-gray-400">mail</span>
+                                    <span class="text-sm font-semibold text-blue-600 italic underline decoration-blue-200">${d.email || 'N/A'}</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="material-symbols-outlined text-[18px] text-gray-400">call</span>
+                                    <span class="text-sm font-medium text-gray-800">${d.phone || 'Chưa cung cấp'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-5 border-l border-dashed pl-8">
+                            <h4 class="font-bold text-sm text-gray-900 border-b pb-2 flex items-center gap-2">
+                                <span class="w-2 h-2 bg-orange-500 rounded-full"></span> Chi Tiết Thỏa Thuận
+                            </h4>
+                            <div class="space-y-4">
+                                <div class="bg-gray-50/50 p-2.5 rounded-xl border border-gray-100">
+                                    <p class="text-[10px] text-gray-400 font-bold uppercase">Giá Thuê Đề Xuất</p>
+                                    <p class="text-lg font-black text-orange-600">${d.rentalPrice.toLocaleString()} <small class="text-[10px] text-gray-400 underline uppercase">đ / tháng</small></p>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 ml-1">
+                                    <div>
+                                        <p class="text-[10px] text-gray-400 font-bold uppercase">Tiền cọc</p>
+                                        <p class="text-sm font-bold text-gray-800">${d.depositAmount.toLocaleString()} đ</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] text-gray-400 font-bold uppercase">Bắt đầu từ</p>
+                                        <p class="text-sm font-bold text-gray-800">${d.startDate}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                vcBody.innerHTML = `
+                    <div class="text-center py-10">
+                        <div class="inline-flex items-center justify-center w-16 h-16 bg-red-50 text-red-400 rounded-full mb-4">
+                            <span class="material-symbols-outlined text-4xl">warning</span>
+                        </div>
+                        <h4 class="text-lg font-bold text-gray-900">${data.message}</h4>
+                        <p class="text-sm text-gray-500 mt-1">Vui lòng thử lại sau hoặc làm mới trang.</p>
+                    </div>
+                `;
+            }
+        } catch(e) {
+            vcBody.innerHTML = '<div class="text-center text-red-500 font-bold py-10 italic underline">Lỗi kết nối Server!</div>';
+        }
+    }
+
+    async function cancelInvitation(roomId) {
+        const result = await Swal.fire({
+            title: 'Hủy lời mời này?',
+            text: "Hợp đồng nháp sẽ bị xóa và phòng sẽ quay về trạng thái Trống. Lưu ý: Lời mời đã gửi tới khách sẽ không còn hiệu lực.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Đồng ý hủy',
+            cancelButtonText: 'Không hủy'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const res = await fetch('/Buildings/CancelInvitation?roomId=' + roomId, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showSuccessModal("Đã Hủy!", "Lời mời đã được thu hồi và phòng đã trở về trạng thái Còn trống.");
+                } else {
+                    Swal.fire('Lỗi', data.message, 'error');
+                }
+            } catch(e) {
+                Swal.fire('Lỗi', 'Lỗi kết nối Server', 'error');
+            }
         }
     }
 </script>

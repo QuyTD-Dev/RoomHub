@@ -138,5 +138,85 @@ namespace Web.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetPendingContracts([FromServices] Infrastructure.Persistence.ApplicationDbContext context)
+        {
+            var tenantId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var pending = await context.Contracts
+                .Include(c => c.Room)
+                .ThenInclude(r => r.Floor)
+                .ThenInclude(f => f.Building)
+                .Include(c => c.Owner)
+                .Where(c => c.TenantId == tenantId && c.Status == Domain.Enums.ContractStatus.Draft)
+                .Select(c => new {
+                    contractId = c.Id,
+                    roomNumber = c.Room.RoomNumber,
+                    buildingName = c.Room.Floor.Building.Name,
+                    ownerName = c.Owner.FullName,
+                    rent = c.RentAmount,
+                    date = c.StartDate.ToString("dd/MM/yyyy")
+                })
+                .ToListAsync();
+
+            return Json(new { count = pending.Count, data = pending });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RespondToContract(int contractId, bool accept, [FromServices] Infrastructure.Persistence.ApplicationDbContext context)
+        {
+            var tenantId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var contract = await context.Contracts
+                .Include(c => c.Room)
+                .Include(c => c.Owner)
+                .FirstOrDefaultAsync(c => c.Id == contractId && c.TenantId == tenantId && c.Status == Domain.Enums.ContractStatus.Draft);
+
+            if (contract == null) return Json(new { success = false, message = "Không tìm thấy lời mời nhận phòng." });
+
+            if (accept)
+            {
+                contract.Status = Domain.Enums.ContractStatus.Active;
+                contract.Room.Status = Domain.Enums.RoomStatus.Occupied; // CẬP NHẬT: Chuyển sang Đang Ở
+                
+                // Gửi thông báo lại cho chủ nhà
+                var notif = new Domain.Entities.Notification
+                {
+                    UserId = contract.OwnerId,
+                    Type = "ContractResponse",
+                    Title = "Khách đã nhận phòng",
+                    Content = $"Khách thuê {User.Identity.Name} đã CHẤP NHẬN vào ở Phòng P.{contract.Room.RoomNumber}.",
+                    LinkedId = contract.RoomId,
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.Notifications.Add(notif);
+            }
+            else
+            {
+                // Từ chối -> Xóa cứng hợp đồng nháp & Đổi trạng thái phòng lại Available (CẬP NHẬT)
+                contract.Room.Status = Domain.Enums.RoomStatus.Available;
+                
+                var notif = new Domain.Entities.Notification
+                {
+                    UserId = contract.OwnerId,
+                    Type = "ContractResponse",
+                    Title = "Khách từ chối phòng",
+                    Content = $"Khách thuê {User.Identity.Name} đã TỪ CHỐI lời mời vào Phòng P.{contract.Room.RoomNumber}.",
+                    LinkedId = contract.RoomId,
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.Notifications.Add(notif);
+                
+                // Xóa cả hóa đơn điện nước nháp nếu có
+                var readings = await context.UtilityReadings.Where(u => u.ContractId == contract.Id).ToListAsync();
+                if(readings.Any()) context.UtilityReadings.RemoveRange(readings);
+
+                context.Contracts.Remove(contract); // Xóa cứng Draft để dọn rác DB
+            }
+
+            await context.SaveChangesAsync();
+            return Json(new { success = true });
+        }
     }
 }

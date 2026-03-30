@@ -29,7 +29,10 @@ namespace Domain.Enums
         Active,
 
         [Display(Name = "Đã ẩn")]
-        Hidden
+        Hidden,
+
+        [Display(Name = "Chờ xác nhận")]
+        PendingApproval
     }
 }
 
