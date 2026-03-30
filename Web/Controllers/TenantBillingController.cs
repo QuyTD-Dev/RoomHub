@@ -1,7 +1,8 @@
-﻿using Application.Interfaces.Services;
+using Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http; // Bắt buộc phải có để nhận File ảnh (IFormFile)
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace Web.Controllers
@@ -25,6 +26,23 @@ namespace Web.Controllers
             var tenantId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
             var invoices = await _invoiceService.GetTenantInvoicesAsync(tenantId);
             return View(invoices);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> MyRoom([FromServices] Infrastructure.Persistence.ApplicationDbContext context)
+        {
+            var tenantId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            
+            var contracts = await context.Contracts
+                .Where(c => c.TenantId == tenantId && c.Status == Domain.Enums.ContractStatus.Active)
+                .Include(c => c.Room)
+                    .ThenInclude(r => r.Floor)
+                        .ThenInclude(f => f.Building)
+                .Include(c => c.Owner)
+                .OrderByDescending(c => c.StartDate)
+                .ToListAsync();
+
+            return View(contracts);
         }
 
         [HttpGet]

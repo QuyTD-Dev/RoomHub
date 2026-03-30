@@ -1,4 +1,4 @@
-﻿using Application.Interfaces.Repositories;
+using Application.Interfaces.Repositories;
 using Domain.Entities;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -75,6 +75,30 @@ namespace Infrastructure.Repositories
                 await transaction.RollbackAsync();
                 throw;
             }
+        }
+
+        public async Task<bool> DeleteBuildingAsync(int buildingId, string ownerId)
+        {
+            var building = await _context.Buildings
+                .Include(b => b.Floors)
+                .ThenInclude(f => f.Rooms)
+                .FirstOrDefaultAsync(b => b.Id == buildingId && b.OwnerId == ownerId);
+
+            if (building == null) return false;
+
+            // Kiểm tra xem có phòng nào đang có người ở không
+            bool hasOccupiedRooms = building.Floors
+                .SelectMany(f => f.Rooms)
+                .Any(r => r.Status == Domain.Enums.RoomStatus.Occupied);
+
+            if (hasOccupiedRooms)
+            {
+                throw new InvalidOperationException("Không thể xóa tòa nhà vì đang có phòng được cho thuê. Vui lòng thanh lý hợp đồng trước.");
+            }
+
+            _context.Buildings.Remove(building);
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

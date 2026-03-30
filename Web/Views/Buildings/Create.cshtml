@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Thiết lập Tòa nhà";
 }
 
@@ -156,8 +156,24 @@
                 <span class="material-symbols-outlined text-sm">done_all</span> Khởi tạo Tòa nhà
             </button>
         </div>
-    </div>
+</div>
 
+<div id="successModal" class="fixed inset-0 z-[80] hidden bg-gray-900/60 backdrop-blur-sm items-center justify-center">
+    <div class="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl scale-95 opacity-0 transition-all duration-200" id="successContent">
+        <div class="p-6 text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4 border-4 border-green-50">
+                <span class="material-symbols-outlined text-4xl text-green-500">check_circle</span>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2 font-display">Đã khởi tạo Tòa nhà!</h3>
+            <p class="text-sm text-gray-500 mb-6 leading-relaxed">
+                Hệ thống đã tự động tạo lưới cấu trúc phòng cho tòa nhà của bạn.
+            </p>
+            <input type="hidden" id="success-nav-url" />
+            <button onclick="window.location.href = document.getElementById('success-nav-url').value" class="w-full bg-green-500 text-white font-bold py-2.5 px-4 rounded-xl hover:bg-green-600 transition-colors shadow-md shadow-green-200 flex items-center justify-center gap-1.5 text-sm">
+                Đi đến Quản lý Lưới phòng
+            </button>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -412,8 +428,16 @@
                 
                 const data = await response.json();
                 if(data.success) {
-                    alert("Khởi tạo thành công! Hệ thống đã tạo lưới phòng tự động.");
-                    window.location.href = '/Buildings/Details/' + data.buildingId;
+                    const sModal = document.getElementById('successModal');
+                    const sContent = document.getElementById('successContent');
+                    document.getElementById('success-nav-url').value = '/Buildings/Details/' + data.buildingId;
+                    
+                    sModal.classList.remove('hidden');
+                    sModal.classList.add('flex');
+                    setTimeout(() => {
+                        sContent.classList.remove('scale-95', 'opacity-0');
+                        sContent.classList.add('scale-100', 'opacity-100');
+                    }, 10);
                 } else {
                     alert("Lỗi: " + data.message);
                     btn.innerHTML = `<span class="material-symbols-outlined text-sm">done_all</span> Khởi tạo Tòa nhà`;

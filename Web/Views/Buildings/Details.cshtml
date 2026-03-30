@@ -136,8 +136,8 @@
                                 }
                                 else
                                 {
-                                    <button class="bg-white text-gray-900 px-4 py-1.5 rounded font-bold text-xs hover:bg-blue-500 hover:text-white transition-colors w-3/4">Xem Hợp đồng</button>
-                                    <button class="bg-red-500 text-white px-4 py-1.5 rounded font-bold text-xs hover:bg-red-600 transition-colors w-3/4">Báo trả phòng</button>
+                                    <button onclick="openViewContractModal(@room.Id)" class="bg-white text-gray-900 px-4 py-1.5 rounded font-bold text-xs hover:bg-blue-500 hover:text-white transition-colors w-3/4">Thông tin Khách</button>
+                                    <button onclick="checkoutRoom(@room.Id, '@room.RoomNumber')" class="bg-red-500 text-white px-4 py-1.5 rounded font-bold text-xs hover:bg-red-600 transition-colors w-3/4">Báo trả phòng</button>
                                 }
                             </div>
                         </div>
@@ -265,9 +265,15 @@
                         </div>
                     </div>
                     
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Ngày bắt đầu ở <span class="text-red-500">*</span></label>
-                        <input type="date" id="t-date" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none" />
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Ngày bắt đầu <span class="text-red-500">*</span></label>
+                            <input type="date" id="t-date" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Ngày kết thúc <span class="text-red-500">*</span></label>
+                            <input type="date" id="t-endDate" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg outline-none" />
+                        </div>
                     </div>
 
                     <div class="p-3 bg-orange-50 border border-orange-100 rounded-lg mt-4">
@@ -287,6 +293,198 @@
     </div>
 </div>
 
+<div id="successModal" class="fixed inset-0 z-[80] hidden bg-gray-900/60 backdrop-blur-sm items-center justify-center">
+    <div class="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl scale-95 opacity-0 transition-all duration-200" id="successContent">
+        <div class="p-6 text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4 border-4 border-green-50">
+                <span class="material-symbols-outlined text-4xl text-green-500">check_circle</span>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2 font-display" id="successTitle">Thành công!</h3>
+            <p class="text-sm text-gray-500 mb-6 leading-relaxed" id="successMessage">
+                Thao tác đã được thực hiện thành công.
+            </p>
+            <button onclick="window.location.reload()" class="w-full bg-green-500 text-white font-bold py-2.5 px-4 rounded-xl hover:bg-green-600 transition-colors shadow-md shadow-green-200 flex items-center justify-center gap-1.5 text-sm">
+                Đồng ý & Tải lại
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showSuccessModal(title, message) {
+        document.getElementById('successTitle').innerText = title;
+        document.getElementById('successMessage').innerText = message;
+        
+        const sModal = document.getElementById('successModal');
+        const sContent = document.getElementById('successContent');
+        
+        sModal.classList.remove('hidden');
+        sModal.classList.add('flex');
+        setTimeout(() => {
+            sContent.classList.remove('scale-95', 'opacity-0');
+            sContent.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+</script>
+
+<div id="viewContractModal" class="fixed inset-0 z-[60] hidden bg-gray-900/60 backdrop-blur-sm items-center justify-center">
+    <div class="bg-white rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl scale-95 opacity-0 transition-all duration-200" id="viewContractContent">
+        <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-blue-50">
+            <div>
+                <h3 class="text-xl font-bold text-blue-800 flex items-center gap-2"><span class="material-symbols-outlined">assignment_ind</span> Thông tin Khách Thuê & Hợp Đồng</h3>
+                <p class="text-xs text-blue-600 mt-1">Dữ liệu chi tiết của hợp đồng đang có hiệu lực</p>
+            </div>
+            <button onclick="closeViewContractModal()" class="text-gray-400 hover:text-gray-800 bg-white rounded-full p-1 border border-gray-200">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        <div class="p-6" id="viewContractBody">
+            <div class="flex justify-center my-8">
+                <span class="material-symbols-outlined animate-spin text-4xl text-blue-500">sync</span>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-gray-100 flex justify-end bg-gray-50">
+            <button onclick="closeViewContractModal()" class="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm shadow-md hover:bg-blue-700">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<div id="checkoutConfirmModal" class="fixed inset-0 z-[70] hidden bg-gray-900/60 backdrop-blur-sm items-center justify-center">
+    <div class="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl scale-95 opacity-0 transition-all duration-200" id="checkoutConfirmContent">
+        <div class="p-6 text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4 border-4 border-red-50">
+                <span class="material-symbols-outlined text-3xl text-red-600">report_problem</span>
+            </div>
+            <h3 class="text-[19px] font-bold text-gray-900 mb-2 font-display">Báo Trả Phòng <span id="co-roomName" class="text-red-600"></span>?</h3>
+            <p class="text-sm text-gray-500 mb-6 leading-relaxed">
+                Hành động này sẽ thanh lý hợp đồng thuê hiện tại và chuyển phòng về trạng thái <strong class="text-gray-800">Còn trống</strong>. Bạn chắc chắn chứ?
+            </p>
+            
+            <input type="hidden" id="co-roomId" />
+            
+            <div class="flex flex-col gap-2.5">
+                <button onclick="submitCheckout()" id="btn-submitCheckout" class="w-full bg-red-600 text-white font-bold py-2.5 px-4 rounded-xl hover:bg-red-700 transition-colors shadow-md shadow-red-200 flex items-center justify-center gap-1.5 text-sm">
+                    <span class="material-symbols-outlined text-[18px]">exit_to_app</span> Xác nhận Thanh Lý
+                </button>
+                <button onclick="closeCheckoutModal()" class="w-full bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl hover:bg-gray-100 border border-gray-200 transition-colors text-sm">
+                    Hủy bỏ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const vcModal = document.getElementById('viewContractModal');
+    const vcContent = document.getElementById('viewContractContent');
+    const vcBody = document.getElementById('viewContractBody');
+
+    function openViewContractModal(roomId) {
+        vcBody.innerHTML = '<div class="flex justify-center my-8"><span class="material-symbols-outlined animate-spin text-4xl text-blue-500">sync</span></div>';
+        
+        vcModal.classList.remove('hidden');
+        vcModal.classList.add('flex');
+        setTimeout(() => {
+            vcContent.classList.remove('scale-95', 'opacity-0');
+            vcContent.classList.add('scale-100', 'opacity-100');
+        }, 10);
+
+        fetch('/Buildings/GetContractDetails?roomId=' + roomId)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const d = data.data;
+                    vcBody.innerHTML = `
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="space-y-4">
+                                <h4 class="font-bold text-sm text-gray-900 border-b pb-2 text-blue-800 flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">person</span> Khách Thuê</h4>
+                                <div><p class="text-[11px] text-gray-500 font-bold tracking-wider uppercase">Họ và tên</p><p class="font-bold text-gray-900">${d.tenantName}</p></div>
+                                <div><p class="text-[11px] text-gray-500 font-bold tracking-wider uppercase">Số điện thoại</p><p class="font-medium text-gray-900">${d.tenantPhone || 'Chưa cập nhật'}</p></div>
+                                <div><p class="text-[11px] text-gray-500 font-bold tracking-wider uppercase">Email</p><p class="font-medium text-gray-900">${d.tenantEmail}</p></div>
+                            </div>
+                            <div class="space-y-4 border-l pl-6">
+                                <h4 class="font-bold text-sm text-gray-900 border-b pb-2 text-orange-800 flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">description</span> Hợp Đồng</h4>
+                                <div><p class="text-[11px] text-gray-500 font-bold tracking-wider uppercase">Giá Thuê</p><p class="font-bold text-orange-600">${d.rentAmount.toLocaleString()} đ/tháng</p></div>
+                                <div><p class="text-[11px] text-gray-500 font-bold tracking-wider uppercase">Tiền cọc</p><p class="font-bold text-gray-900">${d.depositAmount.toLocaleString()} đ</p></div>
+                                <div><p class="text-[11px] text-gray-500 font-bold tracking-wider uppercase">Ngày bắt đầu</p><p class="font-medium text-gray-900">${d.startDate}</p></div>
+                                <div><p class="text-[11px] text-gray-500 font-bold tracking-wider uppercase">Ngày kết thúc</p><p class="font-medium text-gray-900">${d.endDate}</p></div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    vcBody.innerHTML = '<div class="text-center text-red-500 font-bold py-8">' + data.message + '</div>';
+                }
+            })
+            .catch(err => {
+                vcBody.innerHTML = '<div class="text-center text-red-500 font-bold py-8">Lỗi kết nối Server!</div>';
+            });
+    }
+
+    function closeViewContractModal() {
+        vcContent.classList.remove('scale-100', 'opacity-100');
+        vcContent.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            vcModal.classList.add('hidden');
+            vcModal.classList.remove('flex');
+        }, 200);
+    }
+
+    const coModal = document.getElementById('checkoutConfirmModal');
+    const coContent = document.getElementById('checkoutConfirmContent');
+
+    function checkoutRoom(roomId, roomNumber) {
+        document.getElementById('co-roomId').value = roomId;
+        document.getElementById('co-roomName').innerText = roomNumber;
+        
+        coModal.classList.remove('hidden');
+        coModal.classList.add('flex');
+        setTimeout(() => {
+            coContent.classList.remove('scale-95', 'opacity-0');
+            coContent.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    function closeCheckoutModal() {
+        coContent.classList.remove('scale-100', 'opacity-100');
+        coContent.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            coModal.classList.add('hidden');
+            coModal.classList.remove('flex');
+        }, 200);
+    }
+
+    async function submitCheckout() {
+        const btn = document.getElementById('btn-submitCheckout');
+        const roomId = document.getElementById('co-roomId').value;
+        
+        btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-[18px]">sync</span> Đang xử lý...`;
+        btn.disabled = true;
+
+        try {
+            const response = await fetch('/Buildings/CheckoutRoom', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ RoomId: parseInt(roomId) })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert("Lỗi: " + data.message);
+                btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">exit_to_app</span> Xác nhận Thanh Lý`;
+                btn.disabled = false;
+            }
+        } catch (err) {
+            alert("Lỗi kết nối Server.");
+            btn.innerHTML = `<span class="material-symbols-outlined text-[18px]">exit_to_app</span> Xác nhận Thanh Lý`;
+            btn.disabled = false;
+        }
+    }
+</script>
+
 <script>
     const tenantModal = document.getElementById('addTenantModal');
     const tenantModalContent = document.getElementById('tenantModalContent');
@@ -295,8 +493,12 @@
         document.getElementById('t-roomId').value = id;
         document.getElementById('t-roomName').innerText = name;
         document.getElementById('t-price').value = price;
-        // Tự động lấy ngày hôm nay
-        document.getElementById('t-date').valueAsDate = new Date();
+        // Tự động lấy ngày hôm nay và ngày kết thúc (6 tháng sau)
+        const today = new Date();
+        document.getElementById('t-date').valueAsDate = today;
+        const endDay = new Date(today);
+        endDay.setMonth(endDay.getMonth() + 6);
+        document.getElementById('t-endDate').valueAsDate = endDay;
 
         tenantModal.classList.remove('hidden');
         tenantModal.classList.add('flex');
@@ -322,10 +524,11 @@
         const phone = document.getElementById('t-phone').value;
         const name = document.getElementById('t-name').value;
         const date = document.getElementById('t-date').value;
+        const endDate = document.getElementById('t-endDate').value;
         const email = document.getElementById('t-email').value;
         
-        if(!phone || !name || !date || !email) { // [CẬP NHẬT ĐIỀU KIỆN BẮT LỖI]
-            alert("Vui lòng nhập đầy đủ Tên, Số điện thoại, Email và Ngày bắt đầu!");
+        if(!phone || !name || !date || !endDate || !email) { // [CẬP NHẬT ĐIỀU KIỆN BẮT LỖI]
+            alert("Vui lòng nhập đầy đủ Tên, Số điện thoại, Email, Ngày bắt đầu và Ngày kết thúc!");
             return;
         }
 
@@ -341,6 +544,7 @@
             RentalPrice: parseFloat(document.getElementById('t-price').value) || 0,
             DepositAmount: parseFloat(document.getElementById('t-deposit').value) || 0,
             StartDate: date,
+            EndDate: endDate,
             InitialElec: parseFloat(document.getElementById('t-elec').value) || 0
         };
 
@@ -353,8 +557,7 @@
             
             const data = await response.json();
             if(data.success) {
-                alert("Hoàn tất! Khách đã được thêm vào phòng.");
-                window.location.reload();
+                showSuccessModal("Hợp đồng Đã Ký!", "Khách đã được đưa vào phòng thành công. Hệ thống đã lưu trữ hợp đồng và chốt chỉ số điện đầu kỳ.");
             } else {
                 alert("Lỗi: " + data.message);
             }

@@ -1,0 +1,120 @@
+@model List<Domain.Entities.Contract>
+@{
+    ViewData["Title"] = "Phòng đang ở";
+}
+
+<div class="max-w-3xl mx-auto px-4 py-10">
+    <div class="flex items-center gap-4 mb-8">
+        <div class="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-2xl text-blue-600">meeting_room</span>
+        </div>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Phòng đang ở</h1>
+            <p class="text-sm text-gray-500 mt-0.5">Thông tin các phòng bạn đang thuê hiện tại</p>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 flex flex-col items-center justify-center text-center">
+            <div class="w-20 h-20 bg-blue-50 text-blue-400 rounded-full flex items-center justify-center mb-4">
+                <span class="material-symbols-outlined text-4xl">home_work</span>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Bạn chưa thuê phòng nào</h3>
+            <p class="text-gray-500 text-sm max-w-xs">Hiện tại bạn chưa có hợp đồng thuê phòng nào đang hoạt động.</p>
+            <a href="/RoomPosts/Index" class="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white rounded-xl font-bold text-sm hover:bg-orange-600 transition-colors shadow-md shadow-orange-200">
+                <span class="material-symbols-outlined text-[18px]">search</span>
+                Tìm phòng ngay
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="space-y-5">
+            @foreach (var contract in Model)
+            {
+                var room = contract.Room;
+                var building = room?.Floor?.Building;
+                var daysLeft = (contract.EndDate - DateTime.UtcNow).Days;
+                var isExpiringSoon = daysLeft <= 30 && daysLeft > 0;
+
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+
+                    <div class="p-5 pb-4">
+                        <div class="flex justify-between items-start gap-4">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <h2 class="text-lg font-bold text-gray-900">
+                                        Phòng @(room?.RoomNumber ?? "N/A")
+                                        @if (building != null)
+                                        {
+                                            <span class="text-gray-400 font-normal text-sm">– @building.Name</span>
+                                        }
+                                    </h2>
+                                </div>
+                                @if (building != null)
+                                {
+                                    <p class="text-sm text-gray-500 flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-[16px]">place</span>
+                                        @($"{building.Address}, {building.Ward}, {building.District}, {building.City}")
+                                    </p>
+                                }
+                            </div>
+                            <span class="flex-shrink-0 inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                Đang thuê
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 border-y border-gray-100">
+                        <div class="p-4 border-r border-gray-100">
+                            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Tiền thuê</p>
+                            <p class="font-bold text-orange-600">@contract.RentAmount.ToString("N0")đ/tháng</p>
+                        </div>
+                        <div class="p-4 border-r border-gray-100">
+                            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Ngày bắt đầu</p>
+                            <p class="font-semibold text-gray-800">@contract.StartDate.ToString("dd/MM/yyyy")</p>
+                        </div>
+                        <div class="p-4 border-r border-gray-100">
+                            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Ngày kết thúc</p>
+                            <p class="font-semibold @(isExpiringSoon ? "text-red-600" : "text-gray-800")">@contract.EndDate.ToString("dd/MM/yyyy")</p>
+                        </div>
+                        <div class="p-4">
+                            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Còn lại</p>
+                            @if (daysLeft > 0)
+                            {
+                                <p class="font-bold @(isExpiringSoon ? "text-red-600" : "text-blue-600")">@daysLeft ngày</p>
+                            }
+                            else
+                            {
+                                <p class="font-bold text-gray-400">Đã hết hạn</p>
+                            }
+                        </div>
+                    </div>
+
+                    @if (isExpiringSoon)
+                    {
+                        <div class="mx-5 my-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-amber-700 text-sm">
+                            <span class="material-symbols-outlined text-amber-500 text-[20px]">warning</span>
+                            <span>Hợp đồng của bạn sắp hết hạn trong <strong>@daysLeft ngày</strong>. Vui lòng liên hệ chủ nhà để gia hạn.</span>
+                        </div>
+                    }
+
+                    <div class="p-5 pt-4 flex justify-between items-center">
+                        <div class="flex items-center gap-2 text-sm text-gray-500">
+                            <div class="w-7 h-7 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-sm font-bold">
+                                @(contract.Owner?.UserName?.Substring(0, 1).ToUpper() ?? "?")
+                            </div>
+                            <span>Chủ nhà: <strong class="text-gray-700">@(contract.Owner?.UserName ?? "N/A")</strong></span>
+                        </div>
+                        <a href="@Url.Action("MyInvoices", "TenantBilling")" class="inline-flex items-center gap-1.5 px-4 py-2 border border-orange-200 bg-orange-50 text-orange-600 rounded-lg text-sm font-bold hover:bg-orange-500 hover:text-white transition-all">
+                            <span class="material-symbols-outlined text-[16px]">receipt_long</span>
+                            Xem hóa đơn
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
