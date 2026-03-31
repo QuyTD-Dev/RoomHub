@@ -1,0 +1,230 @@
+@model IEnumerable<Application.DTOs.RoomPosts.RoomListViewModel>
+@{
+    ViewData["Title"] = "Tìm phòng trọ";
+}
+
+<!-- Hero Filter Section -->
+<section class="bg-gradient-to-br from-orange-500 via-orange-400 to-amber-400 py-10 px-4">
+    <div class="max-w-6xl mx-auto text-center">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-white mb-3 tracking-tight">
+            Tìm phòng trọ phù hợp với bạn
+        </h1>
+        <p class="text-white/80 text-base mb-8">
+            Hàng nghìn phòng trọ, căn hộ mini đang chờ bạn khám phá
+        </p>
+
+        <!-- Filter Bar -->
+        <div class="bg-white rounded-2xl shadow-xl p-4 md:p-5 flex flex-col md:flex-row gap-3 items-stretch">
+            <div class="flex-1 relative">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+                <input type="text" id="searchInput" placeholder="Tìm theo tiêu đề, địa chỉ..."
+                       class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-400 focus:border-orange-400 text-sm" />
+            </div>
+            <select id="filterType" class="px-4 py-3 rounded-xl border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-orange-400 min-w-[140px]">
+                <option value="">Loại phòng</option>
+                <option value="Single">Phòng đơn</option>
+                <option value="Double">Phòng đôi</option>
+                <option value="Studio">Studio</option>
+                <option value="Apartment">Căn hộ</option>
+            </select>
+            <select id="filterPrice" class="px-4 py-3 rounded-xl border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-orange-400 min-w-[160px]">
+                <option value="">Khoảng giá</option>
+                <option value="0-2000000">Dưới 2 triệu</option>
+                <option value="2000000-4000000">2 - 4 triệu</option>
+                <option value="4000000-7000000">4 - 7 triệu</option>
+                <option value="7000000-99999999">Trên 7 triệu</option>
+            </select>
+            <select id="filterStatus" class="px-4 py-3 rounded-xl border border-slate-200 text-sm bg-white focus:ring-2 focus:ring-orange-400 min-w-[130px]">
+                <option value="">Trạng thái</option>
+                <option value="Available">Còn trống</option>
+                <option value="Occupied">Đã thuê</option>
+            </select>
+            <button onclick="applyFilters()" class="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-semibold text-sm transition whitespace-nowrap flex items-center gap-2">
+                <span class="material-symbols-outlined text-lg">tune</span>
+                Lọc
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Bar -->
+<div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+    <p class="text-slate-600 text-sm">
+        Tìm thấy <span id="resultCount" class="font-bold text-orange-500">@Model.Count()</span> phòng
+    </p>
+    <div class="flex items-center gap-2 text-sm text-slate-500">
+        <span>Sắp xếp:</span>
+        <select id="sortBy" onchange="applyFilters()" class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-orange-400 bg-white">
+            <option value="newest">Mới nhất</option>
+            <option value="price_asc">Giá tăng dần</option>
+            <option value="price_desc">Giá giảm dần</option>
+            <option value="area_desc">Diện tích lớn nhất</option>
+        </select>
+    </div>
+</div>
+
+<!-- Room Grid -->
+<div class="max-w-7xl mx-auto px-4 pb-16">
+    <div id="roomGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        @foreach (var room in Model)
+        {
+            <a asp-controller="Rooms" asp-action="Details" asp-route-id="@room.Id"
+               class="room-card group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 hover:border-orange-200 cursor-pointer transform hover:-translate-y-1"
+               data-title="@room.Title.ToLower()"
+               data-address="@room.Address.ToLower()"
+               data-type="@room.RoomType"
+               data-price="@room.BasePrice"
+               data-status="@room.Status"
+               data-area="@(room.SurfaceArea ?? 0)"
+               data-date="@room.CreatedAt.ToString("yyyy-MM-dd")">
+
+                <!-- Image -->
+                <div class="relative h-48 overflow-hidden bg-slate-100">
+                    <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=75"
+                         alt="@room.Title"
+                         class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+
+                    <!-- Status Badge -->
+                    @if (room.Status == Domain.Enums.RoomStatus.Available)
+                    {
+                        <span class="absolute top-3 left-3 bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                            Còn trống
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="absolute top-3 left-3 bg-slate-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                            @room.Status
+                        </span>
+                    }
+
+                    <!-- Room Type Badge -->
+                    <span class="absolute top-3 right-3 bg-white/90 backdrop-blur text-slate-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                        @switch (room.RoomType)
+                        {
+                            case Domain.Enums.RoomType.Single:
+                                @:Phòng đơn
+                                break;
+                            case Domain.Enums.RoomType.Double:
+                                @:Phòng đôi
+                                break;
+                            case Domain.Enums.RoomType.Studio:
+                                @:Studio
+                                break;
+                            default:
+                                @room.RoomType
+                                break;
+                        }
+                    </span>
+
+                    <!-- Favorite Button -->
+                    <button class="absolute bottom-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center hover:bg-red-50 transition group/fav" onclick="event.preventDefault(); event.stopPropagation();">
+                        <span class="material-symbols-outlined text-lg text-slate-400 group-hover/fav:text-red-500 transition">favorite</span>
+                    </button>
+                </div>
+
+                <!-- Content -->
+                <div class="p-4">
+                    <!-- Price -->
+                    <div class="flex items-baseline gap-1 mb-2">
+                        <span class="text-xl font-extrabold text-orange-500">
+                            @room.BasePrice.ToString("#,0")
+                        </span>
+                        <span class="text-xs text-slate-400 font-medium">đ/tháng</span>
+                    </div>
+
+                    <!-- Title -->
+                    <h3 class="font-semibold text-slate-800 text-sm leading-snug mb-2 line-clamp-2 group-hover:text-orange-600 transition">
+                        @room.Title
+                    </h3>
+
+                    <!-- Address -->
+                    <div class="flex items-start gap-1.5 mb-3">
+                        <span class="material-symbols-outlined text-slate-400 text-sm mt-0.5">location_on</span>
+                        <p class="text-xs text-slate-500 line-clamp-1">@room.Address</p>
+                    </div>
+
+                    <!-- Tags -->
+                    <div class="flex items-center gap-3 text-xs text-slate-500 pt-3 border-t border-slate-100">
+                        @if (room.SurfaceArea.HasValue)
+                        {
+                            <span class="flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm text-orange-400">square_foot</span>
+                                @room.SurfaceArea m²
+                            </span>
+                        }
+                        <span class="flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm text-orange-400">category</span>
+                            @room.AmenityCount tiện ích
+                        </span>
+                    </div>
+                </div>
+            </a>
+        }
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="hidden text-center py-20">
+        <span class="material-symbols-outlined text-6xl text-slate-300 mb-4">search_off</span>
+        <h3 class="text-lg font-semibold text-slate-600 mb-2">Không tìm thấy phòng nào</h3>
+        <p class="text-sm text-slate-400">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function applyFilters() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const type = document.getElementById('filterType').value;
+        const priceRange = document.getElementById('filterPrice').value;
+        const status = document.getElementById('filterStatus').value;
+        const sortBy = document.getElementById('sortBy').value;
+
+        const cards = Array.from(document.querySelectorAll('.room-card'));
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            let visible = true;
+
+            if (search && !card.dataset.title.includes(search) && !card.dataset.address.includes(search))
+                visible = false;
+
+            if (type && card.dataset.type !== type)
+                visible = false;
+
+            if (status && card.dataset.status !== status)
+                visible = false;
+
+            if (priceRange) {
+                const [min, max] = priceRange.split('-').map(Number);
+                const price = parseFloat(card.dataset.price);
+                if (price < min || price > max) visible = false;
+            }
+
+            card.style.display = visible ? '' : 'none';
+            if (visible) visibleCount++;
+        });
+
+        // Sort visible cards
+        const grid = document.getElementById('roomGrid');
+        const visibleCards = cards.filter(c => c.style.display !== 'none');
+
+        visibleCards.sort((a, b) => {
+            switch (sortBy) {
+                case 'price_asc': return parseFloat(a.dataset.price) - parseFloat(b.dataset.price);
+                case 'price_desc': return parseFloat(b.dataset.price) - parseFloat(a.dataset.price);
+                case 'area_desc': return parseFloat(b.dataset.area) - parseFloat(a.dataset.area);
+                default: return b.dataset.date.localeCompare(a.dataset.date);
+            }
+        });
+
+        visibleCards.forEach(card => grid.appendChild(card));
+
+        document.getElementById('resultCount').textContent = visibleCount;
+        document.getElementById('emptyState').classList.toggle('hidden', visibleCount > 0);
+    }
+
+    // Real-time search
+    document.getElementById('searchInput').addEventListener('input', applyFilters);
+</script>
+}

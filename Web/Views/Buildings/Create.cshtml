@@ -1,0 +1,453 @@
+@{
+    ViewData["Title"] = "Thiết lập Tòa nhà";
+}
+
+<div class="max-w-6xl mx-auto px-4 py-6 pb-24 relative" id="wizard-container">
+    
+    <div id="step-1">
+        <div class="flex items-center gap-4 mb-6">
+            <a href="@Url.Action("Index")" class="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-all">
+                <span class="material-symbols-outlined">arrow_back</span>
+            </a>
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900">Thiết lập Tòa nhà mới</h2>
+                <p class="text-sm text-gray-500">Bước 1/2: Thông tin chung & Hình ảnh</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Tên tòa nhà <span class="text-red-500">*</span></label>
+                    <input type="text" id="b-name" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-orange-500 outline-none transition-all" placeholder="Ví dụ: Chung cư mini Hoa Hồng" />
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Loại hình</label>
+                    <select id="b-type" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-orange-500 outline-none">
+                        <option value="Dãy trọ">Dãy trọ</option>
+                        <option value="Chung cư mini">Chung cư mini (CHMN)</option>
+                        <option value="Nhà nguyên căn">Nhà nguyên căn</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Tỉnh/Thành phố <span class="text-red-500">*</span></label>
+                    <select id="b-province" onchange="loadDistricts()" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer">
+                        <option value="">-- Chọn Tỉnh/Thành --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Quận/Huyện <span class="text-red-500">*</span></label>
+                    <select id="b-district" onchange="loadWards()" disabled class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                        <option value="">-- Chọn Quận/Huyện --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Phường/Xã <span class="text-red-500">*</span></label>
+                    <select id="b-ward" disabled class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                        <option value="">-- Chọn Phường/Xã --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Số nhà, Tên đường <span class="text-red-500">*</span></label>
+                <input type="text" id="b-address" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="VD: 123 Nguyễn Văn Linh..." />
+            </div>
+            
+            <hr class="border-gray-100" />
+            <h3 class="font-bold text-gray-900">Bảng giá dịch vụ chung</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">Giá Điện (đ/Kwh)</label>
+                    <input type="number" id="b-elec" value="3500" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">Giá Nước (đ/Người)</label>
+                    <input type="number" id="b-water" value="80000" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">Wifi (đ/Tháng)</label>
+                    <input type="number" id="b-internet" value="100000" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1">Rác (đ/Tháng)</label>
+                    <input type="number" id="b-garbage" value="30000" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg" />
+                </div>
+            </div>
+
+            <hr class="border-gray-100" />
+            <h3 class="font-bold text-gray-900">Hình ảnh Tòa nhà</h3>
+            <div>
+                <div class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-400 px-6 py-10 hover:bg-gray-50 transition-colors">
+                    <div class="text-center">
+                        <span class="material-symbols-outlined text-4xl text-gray-300">photo_library</span>
+                        <div class="mt-4 flex text-sm leading-6 text-gray-600 justify-center">
+                            <label for="b-photos" class="relative cursor-pointer rounded-md bg-white font-semibold text-orange-600 focus-within:outline-none hover:text-orange-500">
+                                <span>Tải ảnh lên</span>
+                                <input id="b-photos" name="b-photos" type="file" multiple accept="image/*" class="sr-only" onchange="previewImages(event)">
+                            </label>
+                            <p class="pl-1">hoặc kéo thả vào đây</p>
+                        </div>
+                        <p class="text-xs leading-5 text-gray-500">PNG, JPG tối đa 10MB</p>
+                    </div>
+                </div>
+                <div id="image-preview-container" class="mt-4 flex flex-wrap gap-4 empty:hidden"></div>
+            </div>
+        </div>
+
+        <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex justify-end z-50">
+            <button onclick="nextStep()" class="bg-orange-500 text-white px-8 py-2.5 rounded-lg font-bold shadow-md hover:bg-orange-600 transition-all">
+                Lưu & Tiếp tục <span class="material-symbols-outlined align-middle text-sm">arrow_forward</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="step-2" class="hidden">
+        <div class="flex items-center gap-4 mb-6">
+            <button onclick="prevStep()" class="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-all">
+                <span class="material-symbols-outlined">arrow_back</span>
+            </button>
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900">Cấu trúc Tòa nhà</h2>
+                <p class="text-sm text-gray-500">Bước 2/2: Sinh phòng tự động</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div class="lg:col-span-4 bg-white rounded-xl shadow-sm border border-gray-200 p-6 self-start">
+                <h3 class="font-bold text-gray-900 mb-4">Thông số cấu trúc</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Số Tầng</label>
+                        <input type="number" id="struct-floors" value="3" min="1" max="50" onchange="handleFloorChange()" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-lg font-bold text-center" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Số phòng chuẩn mỗi tầng</label>
+                        <input type="number" id="struct-rooms" value="4" min="1" max="20" onchange="generatePreview()" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-lg font-bold text-center" />
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <label class="font-bold text-sm text-gray-700">Tùy chỉnh số phòng từng tầng</label>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggle-custom-floors" class="sr-only peer" onchange="toggleCustomFloors()">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                            </label>
+                        </div>
+                        <div id="custom-floors-container" class="hidden mt-4 space-y-3 max-h-64 overflow-y-auto pr-2">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 p-6 overflow-x-auto">
+                <h3 class="font-bold text-gray-500 mb-4 uppercase text-sm tracking-wider">Mô phỏng trước cấu trúc</h3>
+                <div id="preview-grid" class="space-y-4 flex flex-col-reverse">
+                </div>
+            </div>
+        </div>
+
+        <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex justify-end z-50 gap-4">
+            <button onclick="prevStep()" class="px-6 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-all">Quay lại</button>
+            <button onclick="submitWizard()" id="btn-submit" class="bg-green-500 text-white px-8 py-2.5 rounded-lg font-bold shadow-md shadow-green-500/30 hover:bg-green-600 transition-all flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">done_all</span> Khởi tạo Tòa nhà
+            </button>
+        </div>
+</div>
+
+<div id="successModal" class="fixed inset-0 z-[80] hidden bg-gray-900/60 backdrop-blur-sm items-center justify-center">
+    <div class="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl scale-95 opacity-0 transition-all duration-200" id="successContent">
+        <div class="p-6 text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4 border-4 border-green-50">
+                <span class="material-symbols-outlined text-4xl text-green-500">check_circle</span>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2 font-display">Đã khởi tạo Tòa nhà!</h3>
+            <p class="text-sm text-gray-500 mb-6 leading-relaxed">
+                Hệ thống đã tự động tạo lưới cấu trúc phòng cho tòa nhà của bạn.
+            </p>
+            <input type="hidden" id="success-nav-url" />
+            <button onclick="window.location.href = document.getElementById('success-nav-url').value" class="w-full bg-green-500 text-white font-bold py-2.5 px-4 rounded-xl hover:bg-green-600 transition-colors shadow-md shadow-green-200 flex items-center justify-center gap-1.5 text-sm">
+                Đi đến Quản lý Lưới phòng
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 1. TẢI DỮ LIỆU TỈNH THÀNH (KHI VỪA VÀO TRANG)
+        document.addEventListener("DOMContentLoaded", function() {
+            fetch('https://esgoo.net/api-tinhthanh/1/0.htm')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error === 0) {
+                        let html = '<option value="">-- Chọn Tỉnh/Thành --</option>';
+                        // Gán value chính là tên Tỉnh để lúc Submit gửi thẳng chữ xuống Backend C#
+                        data.data.forEach(p => {
+                            html += `<option value="${p.full_name}" data-id="${p.id}">${p.full_name}</option>`;
+                        });
+                        document.getElementById('b-province').innerHTML = html;
+                    }
+                });
+        });
+
+        // 2. TẢI QUẬN/HUYỆN (KHI CHỌN XONG TỈNH)
+        function loadDistricts() {
+            const provSelect = document.getElementById('b-province');
+            const distSelect = document.getElementById('b-district');
+            const wardSelect = document.getElementById('b-ward');
+            
+            const selectedOption = provSelect.options[provSelect.selectedIndex];
+            const provId = selectedOption.getAttribute('data-id');
+            
+            // Reset & Khóa các ô bên dưới
+            distSelect.innerHTML = '<option value="">-- Chọn Quận/Huyện --</option>';
+            distSelect.disabled = true;
+            wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
+            wardSelect.disabled = true;
+
+            if(!provId) return;
+
+            fetch(`https://esgoo.net/api-tinhthanh/2/${provId}.htm`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error === 0) {
+                        let html = '<option value="">-- Chọn Quận/Huyện --</option>';
+                        data.data.forEach(d => {
+                            html += `<option value="${d.full_name}" data-id="${d.id}">${d.full_name}</option>`;
+                        });
+                        distSelect.innerHTML = html;
+                        distSelect.disabled = false; // Mở khóa ô Quận
+                    }
+                });
+        }
+
+        // 3. TẢI PHƯỜNG/XÃ (KHI CHỌN XONG QUẬN)
+        function loadWards() {
+            const distSelect = document.getElementById('b-district');
+            const wardSelect = document.getElementById('b-ward');
+            
+            const selectedOption = distSelect.options[distSelect.selectedIndex];
+            const distId = selectedOption.getAttribute('data-id');
+            
+            // Reset & Khóa ô Phường
+            wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
+            wardSelect.disabled = true;
+
+            if(!distId) return;
+
+            fetch(`https://esgoo.net/api-tinhthanh/3/${distId}.htm`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error === 0) {
+                        let html = '<option value="">-- Chọn Phường/Xã --</option>';
+                        data.data.forEach(w => {
+                            html += `<option value="${w.full_name}" data-id="${w.id}">${w.full_name}</option>`;
+                        });
+                        wardSelect.innerHTML = html;
+                        wardSelect.disabled = false; // Mở khóa ô Phường
+                    }
+                });
+        }
+        // Preview Hình ảnh
+        let selectedFiles = [];
+        function previewImages(event) {
+            const files = event.target.files;
+            const container = document.getElementById('image-preview-container');
+            
+            for(let i = 0; i < files.length; i++) {
+                selectedFiles.push(files[i]);
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imgDiv = document.createElement('div');
+                    imgDiv.className = 'relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200 shadow-sm';
+                    imgDiv.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover" />`;
+                    container.appendChild(imgDiv);
+                }
+                reader.readAsDataURL(files[i]);
+            }
+        }
+
+        // Logic chuyển bước
+        function nextStep() {
+            if(!document.getElementById('b-name').value || !document.getElementById('b-address').value) {
+                alert("Vui lòng nhập Tên tòa nhà và Địa chỉ!");
+                return;
+            }
+            document.getElementById('step-1').classList.add('hidden');
+            document.getElementById('step-2').classList.remove('hidden');
+            window.scrollTo(0,0);
+            handleFloorChange(); // Khởi tạo UI custom floor
+        }
+
+        function prevStep() {
+            document.getElementById('step-2').classList.add('hidden');
+            document.getElementById('step-1').classList.remove('hidden');
+            window.scrollTo(0,0);
+        }
+
+        // BỔ SUNG: Logic Tùy chỉnh chi tiết từng tầng
+        function handleFloorChange() {
+            if(document.getElementById('toggle-custom-floors').checked) {
+                renderCustomFloorInputs();
+            }
+            generatePreview();
+        }
+
+        function toggleCustomFloors() {
+            const container = document.getElementById('custom-floors-container');
+            if(document.getElementById('toggle-custom-floors').checked) {
+                container.classList.remove('hidden');
+                renderCustomFloorInputs();
+            } else {
+                container.classList.add('hidden');
+            }
+            generatePreview();
+        }
+
+        function renderCustomFloorInputs() {
+            const floors = parseInt(document.getElementById('struct-floors').value) || 1;
+            const defaultRooms = parseInt(document.getElementById('struct-rooms').value) || 1;
+            const container = document.getElementById('custom-floors-container');
+            
+            // Giữ lại giá trị cũ nếu người dùng đã nhập
+            const oldValues = {};
+            container.querySelectorAll('input').forEach(inp => {
+                oldValues[inp.id] = inp.value;
+            });
+
+            container.innerHTML = '';
+            for(let i = 1; i <= floors; i++) {
+                const val = oldValues[`custom-floor-${i}`] || defaultRooms;
+                container.innerHTML += `
+                    <div class="flex items-center justify-between bg-white p-2.5 border border-gray-200 rounded-lg shadow-sm">
+                        <span class="text-sm font-medium text-gray-700">Tầng ${i}</span>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="custom-floor-${i}" value="${val}" min="0" max="50" onchange="generatePreview()" class="w-16 px-2 py-1 bg-gray-50 border border-gray-200 rounded text-center text-sm font-bold text-orange-600 focus:border-orange-500 outline-none" />
+                            <span class="text-xs text-gray-400">phòng</span>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function generatePreview() {
+            const floors = parseInt(document.getElementById('struct-floors').value) || 1;
+            const defaultRooms = parseInt(document.getElementById('struct-rooms').value) || 1;
+            const isCustom = document.getElementById('toggle-custom-floors').checked;
+            
+            const container = document.getElementById('preview-grid');
+            container.innerHTML = '';
+
+            for (let i = 1; i <= floors; i++) {
+                // Lấy số phòng chuẩn, hoặc số phòng custom nếu đang bật tùy chỉnh
+                let roomsCount = defaultRooms;
+                if(isCustom) {
+                    const customInput = document.getElementById(`custom-floor-${i}`);
+                    roomsCount = customInput ? (parseInt(customInput.value) || 0) : defaultRooms;
+                }
+
+                let roomsHtml = '';
+                if(roomsCount === 0) {
+                    roomsHtml = `<div class="w-full text-center text-sm text-gray-400 italic py-2">Tầng này không có phòng (Trống)</div>`;
+                } else {
+                    for (let j = 1; j <= roomsCount; j++) {
+                        const roomName = (i * 100) + j;
+                        roomsHtml += `
+                            <div class="flex-1 min-w-[60px] h-12 border border-orange-200 bg-orange-50 rounded flex items-center justify-center text-xs font-bold text-orange-600 shadow-sm">
+                                P.${roomName}
+                            </div>
+                        `;
+                    }
+                }
+
+                const floorHtml = `
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 text-right shrink-0">
+                            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Tầng ${i}</span>
+                        </div>
+                        <div class="flex-1 bg-white border border-gray-200 p-3 rounded-lg shadow-sm flex flex-wrap gap-3">
+                            ${roomsHtml}
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('afterbegin', floorHtml);
+            }
+        }
+
+        // BỔ SUNG: Gửi Form dạng FormData thay vì JSON để có thể upload Ảnh
+        async function submitWizard() {
+            const btn = document.getElementById('btn-submit');
+            btn.innerHTML = `<span class="material-symbols-outlined animate-spin">sync</span> Đang xử lý...`;
+            btn.disabled = true;
+
+            const formData = new FormData();
+            
+            // 1. Data Thông tin chung
+            formData.append('Config.Name', document.getElementById('b-name').value);
+            formData.append('Config.BuildingType', document.getElementById('b-type').value);
+            formData.append('Config.Province', document.getElementById('b-province').value);
+            formData.append('Config.District', document.getElementById('b-district').value);
+            formData.append('Config.Ward', document.getElementById('b-ward').value);
+            formData.append('Config.StreetAddress', document.getElementById('b-address').value);
+            formData.append('Config.ElectricityPrice', document.getElementById('b-elec').value);
+            formData.append('Config.WaterPrice', document.getElementById('b-water').value);
+            formData.append('Config.InternetPrice', document.getElementById('b-internet').value);
+            formData.append('Config.GarbagePrice', document.getElementById('b-garbage').value);
+
+            // 2. Data Cấu trúc
+            formData.append('Structure.NumberOfFloors', document.getElementById('struct-floors').value);
+            formData.append('Structure.RoomsPerFloor', document.getElementById('struct-rooms').value);
+
+            // 3. Data Custom Floors (Gắn theo dạng mảng [0], [1] cho List C#)
+            if(document.getElementById('toggle-custom-floors').checked) {
+                const floors = parseInt(document.getElementById('struct-floors').value) || 1;
+                let customIndex = 0;
+                for(let i = 1; i <= floors; i++) {
+                    const customRooms = document.getElementById(`custom-floor-${i}`).value;
+                    formData.append(`Structure.CustomFloors[${customIndex}].FloorNumber`, i);
+                    formData.append(`Structure.CustomFloors[${customIndex}].NumberOfRooms`, customRooms);
+                    customIndex++;
+                }
+            }
+
+            // 4. Data File Ảnh
+            selectedFiles.forEach((file) => {
+                formData.append('Config.Photos', file);
+            });
+
+            try {
+                // Gọi API với FormData (Trình duyệt sẽ tự cấu hình Content-Type multipart/form-data)
+                const response = await fetch('/Buildings/CreateData', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                if(data.success) {
+                    const sModal = document.getElementById('successModal');
+                    const sContent = document.getElementById('successContent');
+                    document.getElementById('success-nav-url').value = '/Buildings/Details/' + data.buildingId;
+                    
+                    sModal.classList.remove('hidden');
+                    sModal.classList.add('flex');
+                    setTimeout(() => {
+                        sContent.classList.remove('scale-95', 'opacity-0');
+                        sContent.classList.add('scale-100', 'opacity-100');
+                    }, 10);
+                } else {
+                    alert("Lỗi: " + data.message);
+                    btn.innerHTML = `<span class="material-symbols-outlined text-sm">done_all</span> Khởi tạo Tòa nhà`;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Lỗi kết nối Server.");
+                btn.disabled = false;
+            }
+        }
+    </script>
+}

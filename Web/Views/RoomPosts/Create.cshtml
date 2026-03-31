@@ -1,0 +1,143 @@
+@model Application.DTOs.RoomPosts.CreateRoomViewModel
+@{
+    ViewData["Title"] = "Đăng tin cho thuê";
+
+    // 1. Trích xuất danh sách các Tòa nhà không bị trùng lặp từ danh sách các Phòng đang có
+    var distinctBuildings = Model.AvailableRooms
+        .Select(r => r.Floor.Building)
+        .GroupBy(b => b.Id)
+        .Select(g => g.First())
+        .ToList();
+}
+
+<div class="max-w-3xl mx-auto px-4 py-8">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <span class="material-symbols-outlined text-orange-500">campaign</span>
+            Đăng tin cho thuê mới
+        </h2>
+        
+        <form asp-action="Create" method="post" enctype="multipart/form-data" class="space-y-6">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">1. Chọn tòa nhà <span class="text-red-500">*</span></label>
+                    <select id="BuildingSelect" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-orange-500 outline-none transition-all">
+                        <option value="">-- Chọn tòa nhà --</option>
+                        @foreach (var building in distinctBuildings)
+                        {
+                            <option value="@building.Id">Tòa nhà @building.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">2. Chọn phòng cần đăng <span class="text-red-500">*</span></label>
+                    <select asp-for="SelectedRoomId" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-orange-500 outline-none transition-all" disabled>
+                        <option value="">-- Vui lòng chọn Tòa nhà trước --</option>
+                        @foreach (var room in Model.AvailableRooms)
+                        {
+                            // Lưu BuildingId vào thuộc tính data-* để JS có thể đọc và lọc
+                            <option value="@room.Id" data-building-id="@room.Floor.BuildingId">
+                                Tầng @room.Floor.FloorNumber - P.@room.RoomNumber (Giá: @room.BasePrice.ToString("N0") đ)
+                            </option>
+                        }
+                    </select>
+                    <span asp-validation-for="SelectedRoomId" class="text-sm text-red-500 mt-1"></span>
+                </div>
+            </div>
+
+            <p class="text-xs text-gray-500 mt-[-10px] italic">Hệ thống sẽ tự động lấy thông tin Địa chỉ, Giá, Diện tích của Tòa nhà và Phòng đắp vào bài đăng.</p>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">3. Tiêu đề bài viết <span class="text-red-500">*</span></label>
+                <input asp-for="Title" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-orange-500 outline-none transition-all" placeholder="Ví dụ: Phòng ban công cửa sổ siêu chill, giảm giá mạnh tháng này..." />
+                <span asp-validation-for="Title" class="text-sm text-red-500 mt-1"></span>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">4. Lời rao (Mô tả chi tiết) <span class="text-red-500">*</span></label>
+                <textarea asp-for="Description" rows="5" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-orange-500 outline-none transition-all" placeholder="Hãy viết vài lời thật hấp dẫn về căn phòng của bạn..."></textarea>
+                <span asp-validation-for="Description" class="text-sm text-red-500 mt-1"></span>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">5. Ảnh chụp thực tế của phòng</label>
+                <input asp-for="Photos" type="file" multiple accept="image/*" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg cursor-pointer" />
+            </div>
+
+            <div class="pt-4">
+                <button type="submit" class="w-full bg-orange-500 text-white font-bold text-lg py-3 rounded-lg hover:bg-orange-600 transition-colors shadow-md shadow-orange-500/30 flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-[20px]">publish</span> Xuất bản lên Trang chủ
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const buildingSelect = document.getElementById('BuildingSelect');
+            const roomSelect = document.getElementById('SelectedRoomId');
+            
+            // Backup toàn bộ option của Phòng để dùng làm dữ liệu gốc
+            const allRoomOptions = Array.from(roomSelect.options);
+            
+            // Hàm xử lý lọc phòng
+            function filterRooms() {
+                const selectedBuildingId = buildingSelect.value;
+                const currentRoomVal = roomSelect.value; // Lưu lại phòng đang chọn (nếu có)
+                
+                // Xóa sạch dropdown phòng hiện tại
+                roomSelect.innerHTML = '';
+                
+                // Luôn add lại option mặc định (option đầu tiên)
+                const defaultOption = allRoomOptions[0].cloneNode(true);
+                if (selectedBuildingId) {
+                    defaultOption.text = "-- Chọn một phòng trống --";
+                }
+                roomSelect.appendChild(defaultOption);
+                
+                if (!selectedBuildingId) {
+                    roomSelect.disabled = true; // Khóa dropdown phòng nếu chưa chọn tòa nhà
+                } else {
+                    roomSelect.disabled = false; // Mở khóa
+                    
+                    // Lặp qua dữ liệu gốc, cái nào trùng BuildingId thì nhét vào lại
+                    for (let i = 1; i < allRoomOptions.length; i++) {
+                        const opt = allRoomOptions[i];
+                        if (opt.getAttribute('data-building-id') === selectedBuildingId) {
+                            const clonedOpt = opt.cloneNode(true);
+                            // Giữ lại lựa chọn nếu reload lại trang do lỗi Validate
+                            if (clonedOpt.value === currentRoomVal) {
+                                clonedOpt.selected = true;
+                            }
+                            roomSelect.appendChild(clonedOpt);
+                        }
+                    }
+                }
+            }
+
+            // Lắng nghe sự kiện người dùng đổi Tòa nhà
+            buildingSelect.addEventListener('change', function() {
+                roomSelect.value = ''; // Reset số phòng
+                filterRooms();
+            });
+
+            // Logic phục hồi Dropdown khi trang bị reload (Ví dụ lúc Submit bị lỗi Validate)
+            const initialRoomId = roomSelect.value;
+            if (initialRoomId) {
+                const initialOption = allRoomOptions.find(o => o.value === initialRoomId);
+                if (initialOption) {
+                    buildingSelect.value = initialOption.getAttribute('data-building-id');
+                }
+            }
+            
+            // Chạy lần đầu tiên khi load trang
+            filterRooms();
+        });
+    </script>
+}

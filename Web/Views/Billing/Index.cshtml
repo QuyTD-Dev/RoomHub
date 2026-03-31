@@ -1,0 +1,340 @@
+@model List<Application.DTOs.Billing.RoomUtilityInputViewModel>
+@{
+    ViewData["Title"] = "Chốt Điện Nước & Tính Tiền";
+    var buildings = ViewBag.Buildings as List<Application.DTOs.Buildings.BuildingListDto>;
+}
+
+<div class="max-w-7xl mx-auto px-4 py-8 pb-24">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <span class="material-symbols-outlined text-3xl">receipt_long</span>
+        </div>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Chốt Điện Nước & Lập Hóa Đơn</h1>
+            <p class="text-sm text-gray-500">Nhập chỉ số mới, hệ thống tự động tính toán tổng tiền và gửi hóa đơn cho khách.</p>
+        </div>
+    </div>
+
+    <form method="get" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 mb-6 flex flex-wrap gap-4 items-end">
+        <div class="flex-1 min-w-[250px]">
+            <label class="block text-xs font-bold text-gray-700 mb-1">Tòa nhà cần chốt</label>
+            <select name="buildingId" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-500" required>
+                <option value="">-- Chọn tòa nhà --</option>
+                @if (buildings != null)
+                {
+                    foreach (var b in buildings)
+                    {
+                        <option value="@b.Id" selected="@(ViewBag.SelectedBuildingId == b.Id ? "selected" : null)">@b.Name</option>
+                    }
+                }
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Kỳ chốt (Tháng)</label>
+            <select name="month" class="w-32 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none">
+                @for (int i = 1; i <= 12; i++)
+                {
+                    <option value="@i" selected="@(ViewBag.SelectedMonth == i ? "selected" : null)">Tháng @i</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Năm</label>
+            <select name="year" class="w-32 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none">
+                @for (int i = DateTime.Now.Year - 1; i <= DateTime.Now.Year + 1; i++)
+                {
+                    <option value="@i" selected="@(ViewBag.SelectedYear == i ? "selected" : null)">@i</option>
+                }
+            </select>
+        </div>
+        <button type="submit" class="bg-slate-800 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-slate-700 transition-colors h-[46px]">
+            Tải danh sách phòng
+        </button>
+    </form>
+
+    @if (Model != null && Model.Any())
+    {
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[1100px]">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200 text-[11px] uppercase tracking-wider text-gray-500">
+                        <th class="p-3 font-bold rounded-tl-2xl border-r border-gray-200" rowspan="2">Phòng / Khách</th>
+                        <th class="p-3 font-bold text-center border-r border-gray-200 text-green-700 bg-green-50/30" rowspan="2">TIỀN PHÒNG</th>
+                        <th class="p-3 font-bold border-r border-gray-200 bg-orange-50/50 text-orange-800 text-center" colspan="3">ĐIỆN (@(Model.FirstOrDefault()?.AppliedElectricityPrice.ToString("N0") ?? "0") đ/kWh)</th>
+                        <th class="p-3 font-bold border-r border-gray-200 bg-blue-50/50 text-blue-800 text-center" colspan="2">NƯỚC (@(Model.FirstOrDefault()?.AppliedWaterPrice.ToString("N0") ?? "0") đ/Ng)</th>
+                        <th class="p-3 font-bold text-center border-r border-gray-200 text-purple-700 bg-purple-50/30" colspan="2">DỊCH VỤ KHÁC</th>
+                        <th class="p-3 font-bold text-right rounded-tr-2xl bg-gray-100" rowspan="2">TỔNG CỘNG</th>
+                    </tr>
+                    <tr class="bg-gray-50 border-b border-gray-200 text-[11px] text-gray-500">
+                        <th class="p-2 text-center w-20">Số Cũ</th>
+                        <th class="p-2 text-center w-24 border-x border-orange-100 bg-white">Số Mới</th>
+                        <th class="p-2 text-center border-r border-gray-200 w-20">Tiêu thụ</th>
+                        <th class="p-2 text-center w-20 border-r border-blue-100 bg-white">Số người</th>
+                        <th class="p-2 text-center border-r border-gray-200 w-24">Thành tiền</th>
+                        <th class="p-2 text-center w-20 bg-purple-50/10">Wifi</th>
+                        <th class="p-2 text-center border-r border-gray-200 w-20 bg-purple-50/10">Rác</th>
+                    </tr>
+                </thead>
+                <tbody id="billing-grid">
+                    @foreach (var room in Model)
+                    {
+                        <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors row-item"
+                            data-room-id="@room.RoomId"
+                            data-contract-id="@room.ContractId"
+                            data-elec-price="@room.AppliedElectricityPrice"
+                            data-water-price="@room.AppliedWaterPrice"
+                            data-rent-price="@room.RoomRentPrice"
+                            data-internet-price="@room.AppliedInternetPrice"
+                            data-garbage-price="@room.AppliedGarbagePrice">
+                            
+                            <td class="p-3 border-r border-gray-100">
+                                <p class="font-black text-gray-900 text-base">P.@room.RoomNumber</p>
+                                <p class="text-[11px] font-medium text-gray-500 truncate w-32" title="@room.TenantName">@room.TenantName</p>
+                            </td>
+
+                            <td class="p-3 text-center border-r border-gray-100 font-bold text-green-700 bg-green-50/10">
+                                @room.RoomRentPrice.ToString("N0")
+                            </td>
+
+                            <td class="p-2 border-r border-orange-50 bg-white">
+                                <input type="number" class="calc-trigger w-full text-center font-bold text-gray-500 border border-gray-200 rounded px-1 py-1.5 focus:outline-none focus:ring-2 focus:ring-gray-400 shadow-inner"
+                                       data-type="old-elec" value="@room.OldElectricityIndex" placeholder="Số cũ" />
+                            </td>
+                            <td class="p-2 border-x border-orange-50 bg-white">
+                                <input type="number" class="calc-trigger w-full text-center font-bold text-orange-600 border border-orange-200 rounded px-1 py-1.5 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-inner"
+                                       data-type="elec" data-old="@room.OldElectricityIndex" placeholder="Gõ..." />
+                            </td>
+                            <td class="p-3 text-center font-bold text-orange-600 bg-orange-50/30 result-elec border-r border-gray-100">0</td>
+
+                            <td class="p-2 border-r border-blue-50 bg-white">
+                                <input type="number" class="calc-trigger w-full text-center font-bold text-blue-600 border border-blue-200 rounded px-1 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
+                                       data-type="water" value="1" min="0" placeholder="Ng" />
+                            </td>
+                            <td class="p-3 text-center font-bold text-blue-600 bg-blue-50/30 result-water-money border-r border-gray-100">@room.AppliedWaterPrice.ToString("N0")</td>
+
+                            <td class="p-3 text-center text-xs font-medium text-gray-500 bg-purple-50/5">@room.AppliedInternetPrice.ToString("N0")</td>
+                            <td class="p-3 text-center text-xs font-medium text-gray-500 border-r border-gray-100 bg-purple-50/5">@room.AppliedGarbagePrice.ToString("N0")</td>
+
+                            <td class="p-3 text-right font-black text-slate-800 text-lg result-total bg-gray-50/50">
+                                @((room.RoomRentPrice + room.AppliedInternetPrice + room.AppliedGarbagePrice + room.AppliedWaterPrice).ToString("N0"))
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 flex justify-end z-50">
+            <button onclick="submitInvoices()" id="btn-submit" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-all flex items-center gap-2 text-lg">
+                <span class="material-symbols-outlined">send</span> XUẤT HÓA ĐƠN ĐỒNG LOẠT
+            </button>
+        </div>
+    }
+    else if (ViewBag.SelectedBuildingId != null)
+    {
+        <div class="text-center py-12 bg-white rounded-2xl border border-gray-200">
+            <span class="material-symbols-outlined text-gray-300 text-6xl mb-4">sentiment_dissatisfied</span>
+            <h3 class="text-lg font-bold text-gray-900">Tòa nhà này chưa có khách thuê</h3>
+            <p class="text-gray-500">Hãy thêm khách thuê vào phòng để bắt đầu tính tiền điện nước.</p>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // 1. LOGIC EXCEL - TÍNH TOÁN NGAY LÚC GÕ
+        document.querySelectorAll('.calc-trigger').forEach(input => {
+            input.addEventListener('input', function() {
+                const tr = this.closest('tr');
+                
+                // Lấy các tham số của dòng
+                const rentPrice = parseFloat(tr.getAttribute('data-rent-price')) || 0;
+                const internetPrice = parseFloat(tr.getAttribute('data-internet-price')) || 0;
+                const garbagePrice = parseFloat(tr.getAttribute('data-garbage-price')) || 0;
+                const elecPrice = parseFloat(tr.getAttribute('data-elec-price')) || 0;
+                const waterPrice = parseFloat(tr.getAttribute('data-water-price')) || 0;
+
+                const fixedFees = rentPrice + internetPrice + garbagePrice;
+
+                // Xử lý Điện
+                const oldElecInput = tr.querySelector('input[data-type="old-elec"]'); // Lấy ô nhập số cũ
+                const elecInput = tr.querySelector('input[data-type="elec"]');        // Lấy ô nhập số mới
+                
+                const oldElec = parseFloat(oldElecInput.value) || 0;
+                const newElec = parseFloat(elecInput.value) || oldElec;
+
+                // Xử lý Nước
+                const waterInput = tr.querySelector('input[data-type="water"]');
+                const waterUsage = parseFloat(waterInput.value) || 0;
+
+                // Validate chống nhập lùi điện
+                if(newElec < oldElec) elecInput.classList.add('border-red-500', 'bg-red-50');
+                else elecInput.classList.remove('border-red-500', 'bg-red-50');
+
+                // Tính tiêu thụ
+                const elecUsage = Math.max(0, newElec - oldElec);
+                const waterTotal = waterUsage * waterPrice;
+
+                // Hiển thị ra màn hình
+                tr.querySelector('.result-elec').innerText = elecUsage;
+                tr.querySelector('.result-water-money').innerText = waterTotal.toLocaleString('en-US');
+
+                // Tính Tổng tiền
+                const total = fixedFees + (elecUsage * elecPrice) + waterTotal;
+                tr.querySelector('.result-total').innerText = total.toLocaleString('en-US');
+            });
+
+            // Bấm Enter nhảy xuống dòng dưới
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const type = this.getAttribute('data-type');
+                    const allInputsOfThisType = Array.from(document.querySelectorAll(`input[data-type="${type}"]`));
+                    const currentIndex = allInputsOfThisType.indexOf(this);
+                    if (currentIndex < allInputsOfThisType.length - 1) {
+                        allInputsOfThisType[currentIndex + 1].focus();
+                    }
+                }
+            });
+        });
+
+        // 2. GỬI XUỐNG C# & XUẤT EXCEL
+        async function submitInvoices() {
+            const rows = document.querySelectorAll('.row-item');
+            const readings = [];
+            let hasError = false;
+
+            rows.forEach(tr => {
+                const oldElecInput = tr.querySelector('input[data-type="old-elec"]');
+                const elecInput = tr.querySelector('input[data-type="elec"]');
+                const waterInput = tr.querySelector('input[data-type="water"]');
+
+                const oldElec = parseFloat(oldElecInput.value) || 0;
+                const newElec = parseFloat(elecInput.value) || oldElec;
+                const waterUsage = parseFloat(waterInput.value) || 0;
+
+                if (newElec < oldElec) {
+                    hasError = true;
+                    tr.classList.add('bg-red-50');
+                }
+
+                readings.push({
+                    RoomId: parseInt(tr.getAttribute('data-room-id')),
+                    ContractId: parseInt(tr.getAttribute('data-contract-id')),
+                    OldElectricityIndex: oldElec, // [GỬI SỐ CŨ XUỐNG SERVER]
+                    NewElectricityIndex: newElec,
+                    WaterUsage: waterUsage,
+                    Month: parseInt(document.querySelector('select[name="month"]').value),
+                    Year: parseInt(document.querySelector('select[name="year"]').value)
+                });
+            });
+
+            if (hasError) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi nhập liệu',
+                    text: 'Có phòng nhập sai số điện. Vui lòng kiểm tra lại dòng bôi đỏ!',
+                    confirmButtonColor: '#3085d6'
+                });
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit');
+            btn.innerHTML = `<span class="material-symbols-outlined animate-spin">sync</span> Đang xử lý...`;
+            btn.disabled = true;
+
+            const payload = {
+                BuildingId: parseInt(document.querySelector('select[name="buildingId"]').value),
+                Readings: readings
+            };
+
+            try {
+                const response = await fetch('/Billing/GenerateInvoices', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                if(data.success) {
+                    exportToExcel(); // Gọi hàm sinh file Excel
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công!',
+                        text: 'Chốt số và lập hóa đơn thành công! Đã tự động tải file Excel.',
+                        showConfirmButton: false,
+                        timer: 2500,
+                        timerProgressBar: true
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Thất bại',
+                        text: "Lỗi: " + data.message,
+                        confirmButtonColor: '#d33'
+                    });
+                    btn.innerHTML = `<span class="material-symbols-outlined">send</span> XUẤT HÓA ĐƠN ĐỒNG LOẠT`;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error("Lỗi thực tế:", err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi hệ thống',
+                    text: "Đã xảy ra lỗi hệ thống: " + err.message,
+                    confirmButtonColor: '#d33'
+                });
+                btn.innerHTML = `<span class="material-symbols-outlined">send</span> XUẤT HÓA ĐƠN ĐỒNG LOẠT`;
+                btn.disabled = false;
+            }
+        }
+
+        // 3. HÀM XUẤT EXCEL CHUẨN (ĐÃ FIX LỖI DOM SELECTOR)
+        function exportToExcel() {
+            const month = document.querySelector('select[name="month"]').value;
+            const year = document.querySelector('select[name="year"]').value;
+            const buildingName = document.querySelector('select[name="buildingId"] option:checked').text;
+            
+            let csvContent = "\uFEFF";
+            csvContent += `BẢNG KÊ TIỀN PHÒNG THÁNG ${month}/${year} - ${buildingName.toUpperCase()}\n\n`;
+            csvContent += "Phòng,Khách thuê,Tiền Phòng,Số Điện Cũ,Số Điện Mới,Tiêu Thụ (kWh),Số Người,Tiền Wifi,Tiền Rác,Tổng Tiền Cần Thu (VNĐ)\n";
+
+            document.querySelectorAll('.row-item').forEach(tr => {
+                
+                // [ĐÃ SỬA LỖI]: Dùng thẻ p theo thứ tự thay vì dùng class chứa ký tự ngoặc vuông dễ gây lỗi
+                const pTags = tr.querySelectorAll('td')[0].querySelectorAll('p');
+                const roomName = pTags[0].innerText;
+                const tenantName = pTags[1].innerText;
+                
+                const rentPrice = tr.getAttribute('data-rent-price');
+                const oldElec = tr.querySelector('input[data-type="old-elec"]').value || "0";
+                const newElec = tr.querySelector('input[data-type="elec"]').value || oldElec;
+                const elecUsage = tr.querySelector('.result-elec').innerText;
+                const waterUsage = tr.querySelector('input[data-type="water"]').value || "0";
+                
+                const wifi = tr.getAttribute('data-internet-price');
+                const garbage = tr.getAttribute('data-garbage-price');
+                
+                const totalText = tr.querySelector('.result-total').innerText.replace(/,/g, '');
+
+                csvContent += `"${roomName}","${tenantName}",${rentPrice},${oldElec},${newElec},${elecUsage},${waterUsage},${wifi},${garbage},${totalText}\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", `HoaDon_${buildingName.replace(/\s+/g, '_')}_T${month}_${year}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+}

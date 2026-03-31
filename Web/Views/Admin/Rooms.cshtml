@@ -1,0 +1,187 @@
+@model Application.DTOs.Admin.RoomListAdminViewModel
+@using Domain.Enums
+@{
+    ViewData["Title"] = "Quản lý Phòng trọ";
+    ViewData["Subtitle"] = $"Tổng cộng {Model.TotalCount} phòng";
+    ViewData["ActiveMenu"] = "Rooms";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<!-- ═══ Filter Bar ═══ -->
+<div class="premium-card mb-6 animate-fade-in">
+    <div class="p-4">
+        <form method="get" asp-action="Rooms" class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-lg" style="color: rgba(148,163,184,0.3);">search</span>
+                <input type="text" name="search" value="@Model.CurrentSearch" placeholder="Tìm theo tiêu đề, số phòng..."
+                       class="admin-search w-full" />
+            </div>
+            <select name="status" class="admin-select min-w-[180px]">
+                <option value="">Tất cả trạng thái</option>
+                @foreach (RoomStatus s in Enum.GetValues(typeof(RoomStatus)))
+                {
+                    <option value="@s" selected="@(Model.CurrentStatus == s)">@s</option>
+                }
+            </select>
+            <button type="submit" class="btn-primary">
+                <span class="material-symbols-outlined">filter_list</span>
+                Lọc
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ═══ Table ═══ -->
+<div class="premium-card animate-fade-in animate-delay-2">
+    @if (Model.Rooms.Any())
+    {
+        <div class="overflow-x-auto">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Phòng</th>
+                        <th>Tòa nhà</th>
+                        <th>Giá thuê</th>
+                        <th>
+                            <div class="flex items-center gap-1">
+                                <span class="material-symbols-outlined text-[11px]" style="color: #a78bfa;">auto_awesome</span>
+                                AI Giá gợi ý
+                            </div>
+                        </th>
+                        <th>Trạng thái</th>
+                        <th>Chủ nhà</th>
+                        <th class="text-center">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var room in Model.Rooms)
+                    {
+                        <tr>
+                            <td>
+                                <div class="flex items-center gap-3">
+                                    <div class="avatar avatar-md" style="background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(236,72,153,0.15)); border-color: rgba(168,85,247,0.1);">
+                                        <span class="material-symbols-outlined text-[15px]" style="color: #c084fc;">meeting_room</span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="text-[13px] font-semibold text-white truncate max-w-[200px]">@room.Title</p>
+                                        <p class="text-[10px]" style="color: rgba(148,163,184,0.4);">Phòng @room.RoomNumber</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div>
+                                    <p class="text-[12px] font-medium text-white">@room.BuildingName</p>
+                                    <p class="text-[10px]" style="color: rgba(148,163,184,0.4);">Tầng @room.FloorNumber</p>
+                                </div>
+                            </td>
+                            <td>
+                                <p class="text-[13px] font-bold" style="color: #fb923c;">@room.BasePrice.ToString("N0")đ</p>
+                                @if (room.SurfaceArea.HasValue)
+                                {
+                                    <p class="text-[10px]" style="color: rgba(148,163,184,0.4);">@room.SurfaceArea m²</p>
+                                }
+                            </td>
+                            <td>
+                                @{
+                                    var suggestion = Model.PriceSuggestions.GetValueOrDefault(room.Id);
+                                    var trendIcon = suggestion?.Trend switch {
+                                        "up" => "trending_up",
+                                        "down" => "trending_down",
+                                        _ => "trending_flat"
+                                    };
+                                    var trendColor = suggestion?.Trend switch {
+                                        "up" => "#34d399",
+                                        "down" => "#f87171",
+                                        _ => "#94a3b8"
+                                    };
+                                }
+                                @if (suggestion != null)
+                                {
+                                    <div data-tooltip="@suggestion.Note">
+                                        <p class="text-[13px] font-bold" style="color: @trendColor;">@suggestion.SuggestedPrice.ToString("N0")đ</p>
+                                        <div class="flex items-center gap-0.5">
+                                            <span class="material-symbols-outlined text-[12px]" style="color: @trendColor;">@trendIcon</span>
+                                            <span class="text-[9px]" style="color: rgba(148,163,184,0.4);">@suggestion.Note</span>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-[11px]" style="color: rgba(148,163,184,0.3);">—</span>
+                                }
+                            </td>
+                            <td>
+                                @{
+                                    var (badgeClass, icon) = room.Status switch
+                                    {
+                                        RoomStatus.Available => ("badge-success", "check_circle"),
+                                        RoomStatus.Occupied => ("badge-info", "person"),
+                                        RoomStatus.Deposited => ("badge-warning", "savings"),
+                                        RoomStatus.Maintenance or RoomStatus.UnderMaintenance => ("badge-warning", "build"),
+                                        RoomStatus.Hidden => ("badge-neutral", "visibility_off"),
+                                        _ => ("badge-neutral", "circle")
+                                    };
+                                }
+                                <span class="badge @badgeClass">
+                                    <span class="material-symbols-outlined text-[10px]" style="font-variation-settings:'FILL' 1;">@icon</span>
+                                    @room.Status
+                                </span>
+                            </td>
+                            <td>
+                                <span class="text-[12px] font-medium" style="color: #cbd5e1;">@room.LandlordName</span>
+                            </td>
+                            <td>
+                                <span class="text-[12px]" style="color: rgba(148,163,184,0.5);">@room.CreatedAt.ToString("dd/MM/yyyy")</span>
+                            </td>
+                            <td>
+                                <div class="flex items-center justify-center gap-1">
+                                    @if (room.Status == RoomStatus.Hidden || room.Status == RoomStatus.Maintenance)
+                                    {
+                                        <form asp-action="ApproveRoom" asp-route-id="@room.Id" method="post" class="inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn-action approve" data-tooltip="Duyệt phòng">
+                                                <span class="material-symbols-outlined">check_circle</span>
+                                            </button>
+                                        </form>
+                                    }
+                                    <form asp-action="DeleteRoom" asp-route-id="@room.Id" method="post" class="inline"
+                                          onsubmit="return confirm('Bạn chắc chắn muốn xóa phòng này?')">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn-action delete" data-tooltip="Xóa phòng">
+                                            <span class="material-symbols-outlined">delete</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <div class="p-4 flex items-center justify-between" style="border-top: 1px solid rgba(56,78,122,0.1);">
+                <p class="text-[11px] font-medium" style="color: rgba(148,163,184,0.3);">
+                    Trang @Model.CurrentPage / @Model.TotalPages · @Model.TotalCount kết quả
+                </p>
+                <div class="pagination">
+                    @for (int i = 1; i <= Model.TotalPages; i++)
+                    {
+                        if (i == Model.CurrentPage)
+                        { <span class="active">@i</span> }
+                        else
+                        { <a asp-action="Rooms" asp-route-page="@i" asp-route-status="@Model.CurrentStatus" asp-route-search="@Model.CurrentSearch">@i</a> }
+                    }
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty-state">
+            <span class="material-symbols-outlined">door_front</span>
+            <p class="text-[13px] font-medium">Không tìm thấy phòng nào</p>
+        </div>
+    }
+</div>

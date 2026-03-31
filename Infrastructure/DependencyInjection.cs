@@ -1,5 +1,13 @@
-﻿using Domain.Entities;
+
+
+﻿using Application.Interfaces.Repositories;
+using Application.Interfaces.Services;
+using Application.Services;
+
+using Domain.Entities;
 using Infrastructure.Persistence;
+using Infrastructure.Repositories;
+using Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -23,7 +31,8 @@ namespace Infrastructure
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
                     configuration.GetConnectionString("DefaultConnection"),
-                    b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+                    b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)
+                          .CommandTimeout(120))); // Tăng timeout lên 120s để xử lý lỗi Execution Timeout Expired
 
             // ASP.NET Identity
             services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -38,6 +47,50 @@ namespace Infrastructure
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+
+            // Application Services & Repositories
+            services.AddScoped<Application.Interfaces.Repositories.IRoomPostRepository, Infrastructure.Repositories.RoomPostRepository>();
+            services.AddScoped<Application.Interfaces.Services.IRoomPostService, Application.Services.RoomPostService>();
+            services.AddScoped<Application.Interfaces.Services.ICloudinaryService, Infrastructure.Services.CloudinaryService>();
+
+            services.AddScoped<Application.Interfaces.Repositories.IFavoriteRoomRepository, Infrastructure.Repositories.FavoriteRoomRepository>();
+            services.AddScoped<Application.Interfaces.Services.IFavoriteRoomService, Application.Services.FavoriteRoomService>();
+            // External OAuth Providers
+            services.AddAuthentication()
+                .AddGoogle(options =>
+                {
+                    options.ClientId = configuration["Authentication:Google:ClientId"]!;
+                    options.ClientSecret = configuration["Authentication:Google:ClientSecret"]!;
+                })
+                .AddFacebook(options =>
+                {
+                    options.AppId = configuration["Authentication:Facebook:AppId"]!;
+                    options.AppSecret = configuration["Authentication:Facebook:AppSecret"]!;
+                });
+
+            services.AddScoped<IMessageRepository, MessageRepository>();
+            services.AddScoped<IMessageService, MessageService>();
+
+            // Admin
+            services.AddScoped<IAdminRepository, AdminRepository>();
+            services.AddScoped<IAdminService, AdminService>();
+
+            // AI
+            services.Configure<Application.DTOs.Admin.GeminiSettings>(
+                configuration.GetSection("GeminiSettings"));
+            services.AddHttpClient<IAIService, AIService>();
+            services.AddScoped<IReviewRepository, ReviewRepository>();
+            services.AddScoped<IReviewViolationRepository, ReviewViolationRepository>();
+            services.AddScoped<IReviewService, ReviewService>();
+
+            services.AddScoped<IBuildingRepository, BuildingRepository>();
+            services.AddScoped<IBuildingService, BuildingService>();
+
+            services.AddScoped<IInvoiceRepository, InvoiceRepository>();
+            services.AddScoped<IInvoiceService, InvoiceService>();
+
+            services.AddHttpClient<IGeminiModerationService, GeminiModerationService>();
+            services.AddHttpClient<IChatbotService, ChatbotService>();
 
             return services;
         }

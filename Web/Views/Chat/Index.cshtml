@@ -1,0 +1,961 @@
+@model List<Domain.Entities.Message>
+@{
+    ViewData["Title"] = "Tin nhắn - RoomHub";
+    var currentUserId = ViewBag.CurrentUserId as string;
+    var currentReceiverId = ViewBag.CurrentReceiverId as string;
+}
+
+<style>
+    /* Tuỳ chỉnh thanh cuộn tinh tế */
+    .chat-scroll {
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+    }
+    .chat-scroll::-webkit-scrollbar { width: 6px; }
+    .chat-scroll::-webkit-scrollbar-track { background: transparent; }
+    .chat-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+    
+    /* Hiệu ứng hiện mượt mà cho tin nhắn mới */
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animation-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+</style>
+
+<div class="container mx-auto py-6 px-4 max-w-6xl">
+    <div class="flex flex-col md:flex-row h-[calc(100vh-140px)] min-h-[600px] bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden">
+        
+        <div class="w-full md:w-1/3 lg:w-1/4 border-r border-slate-200 flex flex-col bg-white">
+            <div class="p-4 border-b border-slate-200 bg-slate-50">
+                <h5 class="text-xl font-bold text-slate-800 mb-4">Trò chuyện</h5>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400">search</span>
+                    <input type="text" class="w-full bg-white border border-slate-200 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-sm" placeholder="Tìm kiếm...">
+                </div>
+            </div>
+
+            <div class="flex-grow chat-scroll">
+    @{
+        var contacts = ViewBag.Contacts as List<Domain.Entities.ApplicationUser>;
+    }
+
+    @if (contacts == null || !contacts.Any())
+    {
+        <div class="p-6 text-center text-slate-500 text-sm">
+            Chưa có cuộc trò chuyện nào.
+        </div>
+    }
+    else
+    {
+        foreach (var contact in contacts)
+        {
+            bool isActive = (currentReceiverId == contact.Id);
+            <a href="@Url.Action("Index", "Chat", new { receiverId = contact.Id })" class="block">
+                <div class="p-3 flex items-center border-b border-slate-100 cursor-pointer transition-colors @(isActive ? "bg-orange-50 border-l-4 border-l-orange-500" : "hover:bg-slate-50")">
+                    <div class="relative flex-shrink-0">
+                        <img src="https://ui-avatars.com/api/?name=@contact.FullName&background=f97316&color=fff" class="w-12 h-12 rounded-full object-cover" alt="Avatar">
+                    </div>
+                    <div class="ml-3 overflow-hidden flex-grow">
+                        <h6 class="text-sm font-bold text-slate-800 truncate">@contact.FullName</h6>
+                    </div>
+                </div>
+            </a>
+        }
+    }
+</div>
+        </div>
+
+        <div class="w-full md:w-2/3 lg:w-3/4 flex flex-col bg-slate-50 h-full relative">
+            @if (string.IsNullOrEmpty(currentReceiverId))
+            {
+                <div class="flex-grow flex flex-col items-center justify-center text-slate-400">
+                    <span class="material-symbols-outlined text-7xl opacity-20 mb-4">forum</span>
+                    <h5 class="text-lg font-medium text-slate-500">Chọn một cuộc trò chuyện để bắt đầu</h5>
+                    <p class="text-sm mt-1">Kết nối với chủ trọ hoặc người thuê của bạn</p>
+                </div>
+            }
+            else
+            {
+                <div class="p-4 border-b border-slate-200 bg-white flex items-center justify-between shadow-sm z-10">
+                    <div class="flex items-center">
+    @{
+        // Lấy tên thật từ Controller truyền sang, nếu lỗi thì để mặc định
+        var receiverName = ViewBag.CurrentReceiverName as string ?? "Người dùng ẩn danh";
+    }
+    
+    <img src="https://ui-avatars.com/api/?name=@Uri.EscapeDataString(receiverName)&background=0284c7&color=fff" class="w-11 h-11 rounded-full shadow-sm" alt="Avatar">
+    
+    <div class="ml-3">
+        <h6 class="text-base font-bold text-slate-800">@receiverName</h6>
+        <div class="flex items-center text-xs text-green-500 font-medium mt-0.5">
+            <span class="w-2 h-2 bg-green-500 rounded-full mr-1.5"></span>
+            Đang hoạt động
+        </div>
+    </div>
+</div>
+                    <div class="flex gap-2">
+                        <button id="btnVideoCall" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-green-100 hover:text-green-600 transition" title="Gọi video"><span class="material-symbols-outlined text-xl">videocam</span></button>
+                        <button class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 hover:text-orange-500 transition"><span class="material-symbols-outlined text-xl">info</span></button>
+                    </div>
+                </div>
+
+                <div class="flex-grow p-4 chat-scroll flex flex-col gap-4" id="chatBox">
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var msg in Model)
+                        {
+                        bool isMyMsg = msg.SenderId == currentUserId;
+                        // Kiểm tra xem tin nhắn có phải là ảnh không?
+                        bool isImage = msg.Content.StartsWith("[IMG]");
+    
+                        // Tùy chỉnh CSS: Nếu là ảnh thì bỏ màu nền và padding đi cho đẹp
+                        string baseClass = "max-w-[75%] rounded-2xl text-sm shadow-sm overflow-hidden";
+                        string styleClass = isMyMsg ? "bg-orange-500 text-white rounded-br-sm" : "bg-white text-slate-700 border border-slate-200 rounded-bl-sm";
+    
+                        if (isImage) {
+                            styleClass = isMyMsg ? "rounded-br-sm" : "border border-slate-200 rounded-bl-sm"; 
+                        }
+
+                        <div class="flex flex-col @(isMyMsg ? "items-end" : "items-start") w-full">
+                            <div class="@baseClass @styleClass @(isImage ? "p-0" : "px-4 py-2.5")">
+                                @if (isImage)
+                                {
+                                    <img src="@msg.Content.Substring(5)" class="rounded-xl w-full h-full object-cover cursor-pointer hover:opacity-90 transition" style="max-width: 250px; max-height: 250px;" onclick="window.open(this.src, '_blank')" alt="Ảnh gửi" title="Bấm để xem ảnh lớn" />
+                                }
+                                else
+                                {
+                                    @msg.Content
+                                }
+                            </div>
+                            <span class="text-[11px] text-slate-400 mt-1 px-1">@msg.SentAt.ToString("HH:mm")</span>
+                        </div>
+                    }
+                    }
+                    else
+                    {
+                        <div class="text-center text-slate-400 m-auto text-sm" id="emptyChatMsg">
+                            Chưa có tin nhắn nào. Hãy gửi lời chào!
+                        </div>
+                    }
+                </div>
+
+                <div class="p-4 bg-white border-t border-slate-200">
+                    <div class="flex items-center bg-slate-100 rounded-full p-1 border border-slate-200 focus-within:border-orange-300 focus-within:ring-2 focus-within:ring-orange-100 transition-all">
+                        <button class="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-orange-500 transition"><span class="material-symbols-outlined">add_circle</span></button>
+                        <button type="button" id="btnSelectImage" class="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-orange-500 transition shadow-none border-0">
+    <span class="material-symbols-outlined">image</span>
+</button>
+
+<input type="file" id="imageUploadInput" accept="image/png, image/jpeg, image/jpg" class="hidden" style="display:none;" />
+                        
+                        <input type="text" id="messageInput" class="flex-grow bg-transparent border-none focus:ring-0 text-sm px-2 text-slate-700 placeholder-slate-400 shadow-none outline-none" placeholder="Nhập tin nhắn của bạn..." autocomplete="off">
+                        
+                        <button id="sendButton" class="w-10 h-10 rounded-full bg-orange-500 hover:bg-orange-600 flex items-center justify-center text-white transition-colors shadow-sm ml-1 flex-shrink-0">
+                            <span class="material-symbols-outlined text-lg" style="transform: rotate(-30deg); margin-left: 4px; margin-bottom: 2px;">send</span>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js" asp-append-version="true"></script>
+    
+    <script>
+        const currentUserId = "@currentUserId";
+        const currentReceiverId = "@currentReceiverId";
+
+        function scrollToBottom() {
+            const chatBox = document.getElementById("chatBox");
+            if (chatBox) { chatBox.scrollTop = chatBox.scrollHeight; }
+        }
+
+        scrollToBottom();
+
+        if (currentReceiverId) {
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/chathub")
+                .withAutomaticReconnect()
+                .build();
+
+            // 1. NHẬN TIN NHẮN (SIGNALR)
+            connection.on("ReceiveMessage", function (senderId, message, time) {
+                const chatBox = document.getElementById("chatBox");
+                if (!chatBox) return;
+                
+                const emptyMsg = document.getElementById('emptyChatMsg');
+                if (emptyMsg) emptyMsg.remove();
+
+                let isMyMsg = (senderId === currentUserId);
+                let isImage = message.startsWith("[IMG]");
+                
+                // Trích xuất nội dung HTML tùy thuộc vào loại tin nhắn
+                let contentHtml = isImage ? 
+                    `<img src="${message.substring(5)}" class="rounded-xl w-full h-full object-cover cursor-pointer hover:opacity-90 transition" style="max-width: 250px; max-height: 250px;" onclick="window.open(this.src, '_blank')" alt="Ảnh gửi" title="Bấm để xem ảnh lớn" />` : 
+                    message;
+
+                // Tùy chỉnh CSS
+                let baseClass = "max-w-[75%] rounded-2xl text-sm shadow-sm overflow-hidden";
+                let styleClass = isMyMsg ? "bg-orange-500 text-white rounded-br-sm" : "bg-white text-slate-700 border border-slate-200 rounded-bl-sm";
+                if (isImage) { styleClass = isMyMsg ? "rounded-br-sm" : "border border-slate-200 rounded-bl-sm"; }
+
+                if (isMyMsg || senderId === currentReceiverId) {
+                    let msgHtml = `
+                    <div class="flex flex-col ${isMyMsg ? 'items-end' : 'items-start'} w-full animation-fade-in">
+                        <div class="${baseClass} ${styleClass} ${isImage ? 'p-0' : 'px-4 py-2.5'}">
+                            ${contentHtml}
+                        </div>
+                        <span class="text-[11px] text-slate-400 mt-1 px-1">${time}</span>
+                    </div>`;
+                    
+                    chatBox.insertAdjacentHTML('beforeend', msgHtml);
+                    scrollToBottom();
+                }
+            });
+
+            connection.start().catch(err => console.error("SignalR Lỗi: ", err.toString()));
+
+            // 2. GỬI TIN NHẮN (TEXT)
+            function sendMessage() {
+                const messageInput = document.getElementById("messageInput");
+                const message = messageInput.value.trim();
+                
+                if(message !== "") {
+                    connection.invoke("SendMessage", currentReceiverId, message)
+                        .catch(err => console.error(err.toString()));
+                    
+                    messageInput.value = "";
+                    messageInput.focus();
+                }
+            }
+
+            document.getElementById("sendButton").addEventListener("click", function (e) { sendMessage(); e.preventDefault(); });
+            document.getElementById("messageInput").addEventListener("keypress", function (e) { if (e.key === 'Enter') { sendMessage(); e.preventDefault(); } });
+
+            // ================= 3. LOGIC GỬI HÌNH ẢNH ================= //
+            // Bắt sự kiện bấm nút ảnh
+            document.getElementById("btnSelectImage").addEventListener("click", function () {
+                document.getElementById("imageUploadInput").click();
+            });
+
+            // Bắt sự kiện sau khi chọn file
+            document.getElementById("imageUploadInput").addEventListener("change", async function () {
+                const file = this.files[0];
+                if (!file) return;
+
+                // Reset input để có thể chọn lại ảnh giống hệt
+                this.value = '';
+
+                // Gói data gửi đi
+                const formData = new FormData();
+                formData.append("image", file);
+
+                try {
+                    // Gọi API Upload
+                    const response = await fetch('/Chat/UploadImage', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Gắn tiền tố [IMG] và gửi qua SignalR như một tin nhắn bình thường
+                        const imgMessage = "[IMG]" + data.imageUrl;
+                        connection.invoke("SendMessage", currentReceiverId, imgMessage)
+                            .catch(err => console.error("Lỗi gửi ảnh SignalR:", err.toString()));
+                    } else {
+                        alert("Không thể tải ảnh lên: " + data.message);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("Lỗi hệ thống khi tải ảnh lên.");
+                }
+            });
+        }
+    </script>
+
+    @* ================= VIDEO CALL MODAL ================= *@
+    <div id="videoCallModal" class="fixed inset-0 z-[9999] hidden">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-900/95 backdrop-blur-sm"></div>
+
+        <!-- Main content -->
+        <div class="relative z-10 w-full h-full flex flex-col">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/60 to-transparent absolute top-0 left-0 right-0 z-20">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-lg">
+                        <span class="material-symbols-outlined text-white text-xl">videocam</span>
+                    </div>
+                    <div>
+                        <h3 class="text-white font-bold text-sm" id="vcCallStatusText">Đang gọi...</h3>
+                        <p class="text-white/60 text-xs" id="vcCallTimer">00:00</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video container -->
+            <div class="flex-1 relative">
+                <!-- Remote video (full screen) -->
+                <video id="remoteVideo" autoplay playsinline class="w-full h-full object-cover bg-slate-800"></video>
+
+                <!-- Placeholder when no remote video -->
+                <div id="vcRemotePlaceholder" class="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
+                    <div class="w-28 h-28 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center mb-4 shadow-2xl">
+                        <span class="text-5xl font-bold text-white" id="vcRemoteAvatar">?</span>
+                    </div>
+                    <p class="text-white text-xl font-bold" id="vcRemoteName">Đang kết nối...</p>
+                    <p class="text-white/50 text-sm mt-2" id="vcRemoteStatus">Vui lòng chờ...</p>
+                    <!-- Pulse animation khi đang gọi -->
+                    <div id="vcPulseRing" class="mt-6 flex gap-2">
+                        <span class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></span>
+                        <span class="w-3 h-3 bg-green-400 rounded-full animate-pulse" style="animation-delay: 0.2s"></span>
+                        <span class="w-3 h-3 bg-green-400 rounded-full animate-pulse" style="animation-delay: 0.4s"></span>
+                    </div>
+                </div>
+
+                <!-- Local video (PiP - bottom right) -->
+                <div class="absolute bottom-24 right-6 w-40 h-52 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 bg-slate-900 z-30 cursor-move" id="localVideoContainer">
+                    <video id="localVideo" autoplay playsinline muted class="w-full h-full object-cover mirror"></video>
+                    <div id="vcLocalCamOff" class="absolute inset-0 bg-slate-800 flex items-center justify-center hidden">
+                        <span class="material-symbols-outlined text-white/40 text-3xl">videocam_off</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom controls -->
+            <div class="absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/80 to-transparent py-8">
+                <div class="flex items-center justify-center gap-5">
+                    <button id="vcToggleMic" class="w-14 h-14 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur flex items-center justify-center transition-all" title="Tắt/Bật mic">
+                        <span class="material-symbols-outlined text-white text-2xl" id="vcMicIcon">mic</span>
+                    </button>
+                    <button id="vcToggleCamera" class="w-14 h-14 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur flex items-center justify-center transition-all" title="Tắt/Bật camera">
+                        <span class="material-symbols-outlined text-white text-2xl" id="vcCamIcon">videocam</span>
+                    </button>
+                    <button id="vcHangUp" class="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30 flex items-center justify-center transition-all hover:scale-105" title="Kết thúc cuộc gọi">
+                        <span class="material-symbols-outlined text-white text-3xl">call_end</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ================= INCOMING CALL OVERLAY ================= *@
+    <div id="incomingCallOverlay" class="fixed inset-0 z-[9998] hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-md"></div>
+        <div class="relative z-10 w-full h-full flex items-center justify-center">
+            <div class="text-center">
+                <!-- Avatar with ring animation -->
+                <div class="relative inline-block mb-6">
+                    <div class="w-28 h-28 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center shadow-2xl relative z-10">
+                        <span class="text-5xl font-bold text-white" id="vcIncomingAvatar">?</span>
+                    </div>
+                    <!-- Ripple rings -->
+                    <div class="absolute inset-0 w-28 h-28 rounded-full border-2 border-green-400/60 animate-ping"></div>
+                    <div class="absolute -inset-3 rounded-full border border-green-400/30 animate-pulse"></div>
+                </div>
+
+                <h2 class="text-white text-2xl font-bold mb-1" id="vcIncomingName">Cuộc gọi đến</h2>
+                <p class="text-white/60 text-sm mb-10">Cuộc gọi video đến...</p>
+
+                <div class="flex items-center justify-center gap-8">
+                    <button id="vcRejectCall" class="flex flex-col items-center gap-2 group">
+                        <div class="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all group-hover:scale-110 shadow-lg shadow-red-500/40">
+                            <span class="material-symbols-outlined text-white text-3xl">call_end</span>
+                        </div>
+                        <span class="text-white/70 text-xs font-medium">Từ chối</span>
+                    </button>
+                    <button id="vcAcceptCall" class="flex flex-col items-center gap-2 group">
+                        <div class="w-16 h-16 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center transition-all group-hover:scale-110 shadow-lg shadow-green-500/40 animate-bounce">
+                            <span class="material-symbols-outlined text-white text-3xl">videocam</span>
+                        </div>
+                        <span class="text-white/70 text-xs font-medium">Chấp nhận</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ================= VIDEO CALL CSS ================= *@
+    <style>
+        .mirror { transform: scaleX(-1); }
+        #localVideoContainer { transition: all 0.3s ease; }
+        #localVideoContainer:hover { transform: scale(1.05); }
+    </style>
+
+    @* ================= VIDEO CALL JAVASCRIPT (WebRTC + SignalR) ================= *@
+    <script>
+    (function() {
+        'use strict';
+
+        // ===================== CONSTANTS =====================
+        const ICE_SERVERS = [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' }
+            // (Optional) TURN server fallback - thêm nếu cần:
+            // { urls: 'turn:your-turn-server.com:3478', username: 'user', credential: 'pass' }
+        ];
+
+        // ===================== STATE MACHINE =====================
+        const CallState = Object.freeze({
+            IDLE: 'Idle',
+            CALLING: 'Calling',
+            INCOMING: 'Incoming',
+            CONNECTING: 'Connecting',
+            IN_CALL: 'InCall',
+            ENDED: 'Ended',
+            BUSY: 'Busy'
+        });
+
+        let currentState = CallState.IDLE;
+        let peerConnection = null;
+        let localStream = null;
+        let remoteStream = null;
+        let videoCallConnection = null;
+        let incomingCallerId = null;
+        let callTimerInterval = null;
+        let callSeconds = 0;
+        let micEnabled = true;
+        let camEnabled = true;
+        let iceCandidateQueue = []; // Queue ICE candidates nếu chưa set remoteDescription
+        let hasRemoteDescription = false;
+
+        const receiverName = "@Html.Raw(ViewBag.CurrentReceiverName ?? "Người dùng")";
+
+        // ===================== DOM ELEMENTS =====================
+        const modal = document.getElementById('videoCallModal');
+        const incomingOverlay = document.getElementById('incomingCallOverlay');
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+        const btnVideoCall = document.getElementById('btnVideoCall');
+
+        if (!currentReceiverId || !btnVideoCall) return; // Nếu không có receiver, không khởi tạo
+
+        // ===================== LOGGING =====================
+        function log(msg, ...args) {
+            console.log(`[VideoCall][${currentState}] ${msg}`, ...args);
+        }
+
+        // ===================== STATE MANAGEMENT =====================
+        function setState(newState) {
+            log(`State: ${currentState} → ${newState}`);
+            currentState = newState;
+            updateUI();
+        }
+
+        function updateUI() {
+            const statusText = document.getElementById('vcCallStatusText');
+            const remoteStatus = document.getElementById('vcRemoteStatus');
+            const pulseRing = document.getElementById('vcPulseRing');
+            const placeholder = document.getElementById('vcRemotePlaceholder');
+
+            switch (currentState) {
+                case CallState.CALLING:
+                    modal.classList.remove('hidden');
+                    incomingOverlay.classList.add('hidden');
+                    statusText.textContent = 'Đang gọi...';
+                    remoteStatus.textContent = 'Đang chờ phản hồi...';
+                    pulseRing.classList.remove('hidden');
+                    placeholder.classList.remove('hidden');
+                    document.getElementById('vcRemoteName').textContent = receiverName;
+                    document.getElementById('vcRemoteAvatar').textContent = receiverName.charAt(0).toUpperCase();
+                    break;
+
+                case CallState.INCOMING:
+                    incomingOverlay.classList.remove('hidden');
+                    document.getElementById('vcIncomingName').textContent = incomingCallerName || 'Cuộc gọi đến';
+                    document.getElementById('vcIncomingAvatar').textContent = (incomingCallerName || '?').charAt(0).toUpperCase();
+                    break;
+
+                case CallState.CONNECTING:
+                    modal.classList.remove('hidden');
+                    incomingOverlay.classList.add('hidden');
+                    statusText.textContent = 'Đang kết nối...';
+                    remoteStatus.textContent = 'Đang thiết lập kết nối...';
+                    pulseRing.classList.remove('hidden');
+                    break;
+
+                case CallState.IN_CALL:
+                    modal.classList.remove('hidden');
+                    incomingOverlay.classList.add('hidden');
+                    statusText.textContent = 'Đang gọi video';
+                    placeholder.classList.add('hidden');
+                    pulseRing.classList.add('hidden');
+                    startCallTimer();
+                    break;
+
+                case CallState.ENDED:
+                case CallState.IDLE:
+                    modal.classList.add('hidden');
+                    incomingOverlay.classList.add('hidden');
+                    stopCallTimer();
+                    break;
+
+                case CallState.BUSY:
+                    // Hiện thông báo rồi trở về IDLE
+                    alert('Người dùng đang bận trong cuộc gọi khác.');
+                    cleanup();
+                    setState(CallState.IDLE);
+                    return;
+            }
+        }
+
+        // ===================== CALL TIMER =====================
+        function startCallTimer() {
+            callSeconds = 0;
+            stopCallTimer();
+            callTimerInterval = setInterval(() => {
+                callSeconds++;
+                const min = Math.floor(callSeconds / 60).toString().padStart(2, '0');
+                const sec = (callSeconds % 60).toString().padStart(2, '0');
+                document.getElementById('vcCallTimer').textContent = `${min}:${sec}`;
+            }, 1000);
+        }
+
+        function stopCallTimer() {
+            if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
+            }
+            document.getElementById('vcCallTimer').textContent = '00:00';
+        }
+
+        // ===================== SIGNALR CONNECTION =====================
+        videoCallConnection = new signalR.HubConnectionBuilder()
+            .withUrl("/videocallhub")
+            .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        let incomingCallerName = '';
+
+        // --- SignalR Reconnect Handling ---
+        videoCallConnection.onreconnecting((error) => {
+            log('SignalR reconnecting...', error);
+            if (currentState === CallState.IN_CALL) {
+                document.getElementById('vcCallStatusText').textContent = 'Mất kết nối, đang tự kết nối lại...';
+            }
+        });
+
+        videoCallConnection.onreconnected((connectionId) => {
+            log('SignalR reconnected:', connectionId);
+            if (currentState === CallState.IN_CALL) {
+                document.getElementById('vcCallStatusText').textContent = 'Đang gọi video';
+            }
+        });
+
+        videoCallConnection.onclose((error) => {
+            log('SignalR connection closed', error);
+            if (currentState !== CallState.IDLE && currentState !== CallState.ENDED) {
+                cleanup();
+                setState(CallState.ENDED);
+                setTimeout(() => setState(CallState.IDLE), 500);
+            }
+        });
+
+        // ===================== SIGNALR EVENT HANDLERS =====================
+
+        // Nhận cuộc gọi đến
+        videoCallConnection.on("IncomingCall", (callerId, callerName) => {
+            log(`IncomingCall from ${callerId} (${callerName})`);
+
+            // Busy handling: nếu đang trong cuộc gọi → reject tự động
+            if (currentState !== CallState.IDLE) {
+                log('Already in a call, auto-rejecting');
+                videoCallConnection.invoke("RejectCall", callerId).catch(e => log('RejectCall error:', e));
+                return;
+            }
+
+            incomingCallerId = callerId;
+            incomingCallerName = callerName;
+            setState(CallState.INCOMING);
+        });
+
+        // Cuộc gọi được chấp nhận → Caller tạo Offer
+        videoCallConnection.on("CallAccepted", async (receiverId) => {
+            log('CallAccepted by ' + receiverId);
+            setState(CallState.CONNECTING);
+            await createPeerConnection();
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            log('Sending offer (length: ' + JSON.stringify(offer).length + ')');
+            await videoCallConnection.invoke("SendOffer", receiverId, JSON.stringify(offer));
+        });
+
+        // Cuộc gọi bị từ chối
+        videoCallConnection.on("CallRejected", () => {
+            log('CallRejected');
+            alert('Cuộc gọi đã bị từ chối.');
+            cleanup();
+            setState(CallState.IDLE);
+        });
+
+        // Cuộc gọi bị bận
+        videoCallConnection.on("CallBusy", () => {
+            log('CallBusy');
+            setState(CallState.BUSY);
+        });
+
+        // Cuộc gọi kết thúc
+        videoCallConnection.on("CallEnded", () => {
+            log('CallEnded');
+            cleanup();
+            setState(CallState.ENDED);
+            setTimeout(() => setState(CallState.IDLE), 500);
+        });
+
+        // Nhận SDP Offer → tạo Answer
+        videoCallConnection.on("ReceiveOffer", async (callerId, offerJson) => {
+            log('ReceiveOffer from ' + callerId + ' (length: ' + offerJson.length + ')');
+            setState(CallState.CONNECTING);
+            await createPeerConnection();
+
+            const offer = JSON.parse(offerJson);
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+            hasRemoteDescription = true;
+            log('RemoteDescription set (offer), processing queued ICE candidates: ' + iceCandidateQueue.length);
+            processIceCandidateQueue();
+
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            log('Sending answer (length: ' + JSON.stringify(answer).length + ')');
+            await videoCallConnection.invoke("SendAnswer", callerId, JSON.stringify(answer));
+        });
+
+        // Nhận SDP Answer
+        videoCallConnection.on("ReceiveAnswer", async (receiverId, answerJson) => {
+            log('ReceiveAnswer from ' + receiverId + ' (length: ' + answerJson.length + ')');
+            const answer = JSON.parse(answerJson);
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+            hasRemoteDescription = true;
+            log('RemoteDescription set (answer), processing queued ICE candidates: ' + iceCandidateQueue.length);
+            processIceCandidateQueue();
+        });
+
+        // Nhận ICE Candidate
+        videoCallConnection.on("ReceiveIceCandidate", async (userId, candidateJson) => {
+            log('ReceiveIceCandidate from ' + userId);
+            const candidate = JSON.parse(candidateJson);
+
+            if (!peerConnection || !hasRemoteDescription) {
+                log('Queueing ICE candidate (remoteDescription not set yet)');
+                iceCandidateQueue.push(candidate);
+                return;
+            }
+
+            try {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                log('ICE candidate added successfully');
+            } catch (e) {
+                log('Error adding ICE candidate:', e);
+            }
+        });
+
+        // ===================== ICE CANDIDATE QUEUE =====================
+        async function processIceCandidateQueue() {
+            while (iceCandidateQueue.length > 0) {
+                const candidate = iceCandidateQueue.shift();
+                try {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                    log('Queued ICE candidate added');
+                } catch (e) {
+                    log('Error adding queued ICE candidate:', e);
+                }
+            }
+        }
+
+        // ===================== WEBRTC PEER CONNECTION =====================
+        async function createPeerConnection() {
+            log('Creating RTCPeerConnection with STUN servers');
+            iceCandidateQueue = [];
+            hasRemoteDescription = false;
+
+            // Lấy local media (camera + mic)
+            if (!localStream) {
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+                        audio: { echoCancellation: true, noiseSuppression: true }
+                    });
+                    localVideo.srcObject = localStream;
+                    log('Local media acquired');
+                } catch (e) {
+                    log('getUserMedia error:', e);
+                    alert('Không thể truy cập camera/microphone. Vui lòng cấp quyền và thử lại.');
+                    cleanup();
+                    setState(CallState.IDLE);
+                    return;
+                }
+            }
+
+            peerConnection = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+            // Thêm local tracks vào peer connection
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+                log(`Added local track: ${track.kind}`);
+            });
+
+            // Nhận remote tracks
+            remoteStream = new MediaStream();
+            remoteVideo.srcObject = remoteStream;
+
+            peerConnection.ontrack = (event) => {
+                log(`Remote track received: ${event.track.kind}`);
+                remoteStream.addTrack(event.track);
+                if (currentState === CallState.CONNECTING) {
+                    setState(CallState.IN_CALL);
+                }
+            };
+
+            // ICE Candidate → gửi cho peer qua SignalR
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    const targetId = incomingCallerId || currentReceiverId;
+                    log('Sending ICE candidate to ' + targetId);
+                    videoCallConnection.invoke("SendIceCandidate", targetId, JSON.stringify(event.candidate))
+                        .catch(e => log('SendIceCandidate error:', e));
+                }
+            };
+
+            // Connection state monitoring
+            peerConnection.onconnectionstatechange = () => {
+                log('PeerConnection state: ' + peerConnection.connectionState);
+                switch (peerConnection.connectionState) {
+                    case 'connected':
+                        if (currentState !== CallState.IN_CALL) {
+                            setState(CallState.IN_CALL);
+                        }
+                        break;
+                    case 'disconnected':
+                        document.getElementById('vcCallStatusText').textContent = 'Kết nối bị gián đoạn...';
+                        break;
+                    case 'failed':
+                        log('Connection failed, attempting ICE restart');
+                        // Thử ICE restart
+                        if (peerConnection.restartIce) {
+                            peerConnection.restartIce();
+                        }
+                        break;
+                    case 'closed':
+                        break;
+                }
+            };
+
+            peerConnection.oniceconnectionstatechange = () => {
+                log('ICE connection state: ' + peerConnection.iceConnectionState);
+            };
+        }
+
+        // ===================== CLEANUP =====================
+        function cleanup() {
+            log('Cleanup: closing peer connection and stopping media tracks');
+
+            // Close RTCPeerConnection
+            if (peerConnection) {
+                peerConnection.ontrack = null;
+                peerConnection.onicecandidate = null;
+                peerConnection.onconnectionstatechange = null;
+                peerConnection.oniceconnectionstatechange = null;
+                peerConnection.close();
+                peerConnection = null;
+            }
+
+            // Stop all media tracks
+            if (localStream) {
+                localStream.getTracks().forEach(track => {
+                    track.stop();
+                    log(`Stopped local track: ${track.kind}`);
+                });
+                localStream = null;
+            }
+
+            if (remoteStream) {
+                remoteStream.getTracks().forEach(track => track.stop());
+                remoteStream = null;
+            }
+
+            // Reset video elements
+            if (localVideo) localVideo.srcObject = null;
+            if (remoteVideo) remoteVideo.srcObject = null;
+
+            // Reset state vars
+            incomingCallerId = null;
+            iceCandidateQueue = [];
+            hasRemoteDescription = false;
+            micEnabled = true;
+            camEnabled = true;
+
+            // Reset toggle UI
+            document.getElementById('vcMicIcon').textContent = 'mic';
+            document.getElementById('vcCamIcon').textContent = 'videocam';
+            document.getElementById('vcToggleMic').classList.remove('bg-red-500/50');
+            document.getElementById('vcToggleCamera').classList.remove('bg-red-500/50');
+            document.getElementById('vcLocalCamOff').classList.add('hidden');
+            document.getElementById('vcRemotePlaceholder').classList.remove('hidden');
+
+            stopCallTimer();
+        }
+
+        // ===================== UI EVENT HANDLERS =====================
+
+        // BẤM NÚT GỌI VIDEO
+        btnVideoCall.addEventListener('click', async () => {
+            if (currentState !== CallState.IDLE) {
+                log('Cannot start call: current state is ' + currentState);
+                return;
+            }
+
+            log('Starting video call to ' + currentReceiverId);
+            setState(CallState.CALLING);
+
+            // Lấy media trước để kiểm tra quyền
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+                    audio: { echoCancellation: true, noiseSuppression: true }
+                });
+                localVideo.srcObject = localStream;
+            } catch (e) {
+                log('getUserMedia error:', e);
+                alert('Không thể truy cập camera/microphone. Vui lòng cấp quyền truy cập.');
+                setState(CallState.IDLE);
+                return;
+            }
+
+            // Lấy tên hiện tại của user (để hiển thị cho bên nhận)
+            const currentUserName = document.querySelector('header .text-sm.font-bold')?.textContent?.trim() || 'Người dùng';
+
+            try {
+                await videoCallConnection.invoke("CallUser", currentReceiverId, currentUserName);
+            } catch (e) {
+                log('CallUser invoke error:', e);
+                alert('Không thể thực hiện cuộc gọi. Vui lòng thử lại.');
+                cleanup();
+                setState(CallState.IDLE);
+            }
+        });
+
+        // BẤM CHẤP NHẬN CUỘC GỌI
+        document.getElementById('vcAcceptCall').addEventListener('click', async () => {
+            if (currentState !== CallState.INCOMING || !incomingCallerId) return;
+            log('Accepting call from ' + incomingCallerId);
+
+            // Lấy media trước
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+                    audio: { echoCancellation: true, noiseSuppression: true }
+                });
+                localVideo.srcObject = localStream;
+            } catch (e) {
+                log('getUserMedia error when accepting:', e);
+                alert('Không thể truy cập camera/microphone.');
+                await videoCallConnection.invoke("RejectCall", incomingCallerId);
+                cleanup();
+                setState(CallState.IDLE);
+                return;
+            }
+
+            setState(CallState.CONNECTING);
+            await videoCallConnection.invoke("AcceptCall", incomingCallerId);
+        });
+
+        // BẤM TỪ CHỐI CUỘC GỌI
+        document.getElementById('vcRejectCall').addEventListener('click', async () => {
+            if (currentState !== CallState.INCOMING || !incomingCallerId) return;
+            log('Rejecting call from ' + incomingCallerId);
+            await videoCallConnection.invoke("RejectCall", incomingCallerId);
+            cleanup();
+            setState(CallState.IDLE);
+        });
+
+        // BẤM KẾT THÚC CUỘC GỌI
+        document.getElementById('vcHangUp').addEventListener('click', async () => {
+            log('HangUp clicked');
+            const targetId = incomingCallerId || currentReceiverId;
+            try {
+                await videoCallConnection.invoke("HangUp", targetId);
+            } catch (e) {
+                log('HangUp invoke error:', e);
+            }
+            cleanup();
+            setState(CallState.ENDED);
+            setTimeout(() => setState(CallState.IDLE), 500);
+        });
+
+        // TOGGLE MIC
+        document.getElementById('vcToggleMic').addEventListener('click', () => {
+            if (!localStream) return;
+            micEnabled = !micEnabled;
+            localStream.getAudioTracks().forEach(t => t.enabled = micEnabled);
+            document.getElementById('vcMicIcon').textContent = micEnabled ? 'mic' : 'mic_off';
+            document.getElementById('vcToggleMic').classList.toggle('bg-red-500/50', !micEnabled);
+            log('Mic toggled: ' + (micEnabled ? 'ON' : 'OFF'));
+        });
+
+        // TOGGLE CAMERA
+        document.getElementById('vcToggleCamera').addEventListener('click', () => {
+            if (!localStream) return;
+            camEnabled = !camEnabled;
+            localStream.getVideoTracks().forEach(t => t.enabled = camEnabled);
+            document.getElementById('vcCamIcon').textContent = camEnabled ? 'videocam' : 'videocam_off';
+            document.getElementById('vcToggleCamera').classList.toggle('bg-red-500/50', !camEnabled);
+            document.getElementById('vcLocalCamOff').classList.toggle('hidden', camEnabled);
+            log('Camera toggled: ' + (camEnabled ? 'ON' : 'OFF'));
+        });
+
+        // ===================== TAB CLOSE / REFRESH → AUTO HANGUP =====================
+        window.addEventListener('beforeunload', (e) => {
+            if (currentState !== CallState.IDLE && currentState !== CallState.ENDED) {
+                const targetId = incomingCallerId || currentReceiverId;
+                // Sử dụng sendBeacon hoặc sync invoke
+                videoCallConnection.invoke("HangUp", targetId).catch(() => {});
+                cleanup();
+            }
+        });
+
+        // ===================== START SIGNALR CONNECTION =====================
+        videoCallConnection.start()
+            .then(async () => {
+                log('SignalR VideoCallHub connected');
+
+                // Auto-accept call nếu được redirect từ global overlay
+                const urlParams = new URLSearchParams(window.location.search);
+                const autoAcceptId = urlParams.get('autoAcceptCall');
+                if (autoAcceptId) {
+                    log('Auto-accepting call from ' + autoAcceptId);
+                    incomingCallerId = autoAcceptId;
+
+                    // Lấy media
+                    try {
+                        localStream = await navigator.mediaDevices.getUserMedia({
+                            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+                            audio: { echoCancellation: true, noiseSuppression: true }
+                        });
+                        localVideo.srcObject = localStream;
+                    } catch (e) {
+                        log('getUserMedia error on auto-accept:', e);
+                        alert('Không thể truy cập camera/microphone.');
+                        await videoCallConnection.invoke("RejectCall", autoAcceptId);
+                        return;
+                    }
+
+                    setState(CallState.CONNECTING);
+                    await videoCallConnection.invoke("AcceptCall", autoAcceptId);
+
+                    // Xóa param khỏi URL
+                    const cleanUrl = window.location.pathname + '?receiverId=' + encodeURIComponent(currentReceiverId);
+                    window.history.replaceState({}, '', cleanUrl);
+                }
+            })
+            .catch(err => log('SignalR VideoCallHub connection error:', err));
+
+    })();
+    </script>
+}

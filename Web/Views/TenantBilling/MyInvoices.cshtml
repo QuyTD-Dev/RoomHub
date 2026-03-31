@@ -1,0 +1,291 @@
+@using Domain.Enums
+@model List<Application.DTOs.Billing.InvoiceListViewModel>
+@{
+    ViewData["Title"] = "Hóa đơn của tôi";
+}
+
+<div class="max-w-5xl mx-auto px-4 py-8 pb-24">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
+                <span class="material-symbols-outlined text-3xl">receipt_long</span>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Hóa đơn của tôi</h1>
+                <p class="text-sm text-gray-500">Xem bảng kê chi tiết và thanh toán tiền phòng hàng tháng.</p>
+            </div>
+        </div>
+    </div>
+
+    @{
+        var tenantRooms = ViewBag.TenantRooms as System.Collections.IEnumerable;
+        var selectedRoomId = ViewBag.RoomId as int?;
+    }
+    @if (tenantRooms != null)
+    {
+        <div class="flex flex-wrap items-center gap-2 mb-5">
+            <span class="text-xs font-bold text-gray-500 uppercase tracking-wider mr-1">Lọc theo phòng:</span>
+            <a href="@Url.Action("MyInvoices", "TenantBilling")" class="px-3 py-1.5 rounded-full text-sm font-bold transition-all @(selectedRoomId == null && ViewBag.FilteredByRoom != true ? "bg-orange-500 text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200")">
+                Tất cả
+            </a>
+            @foreach (dynamic room in tenantRooms)
+            {
+                var isSelected = selectedRoomId != null && selectedRoomId == (int)room.Id;
+                <a href="@Url.Action("MyInvoicesByRoom", "TenantBilling", new { roomId = room.Id, from = "myinvoices" })" class="px-3 py-1.5 rounded-full text-sm font-bold transition-all @(isSelected ? "bg-blue-500 text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200")">
+                    Phòng @room.RoomNumber
+                </a>
+            }
+        </div>
+    }
+
+    @if (ViewBag.FilteredByRoom == true)
+    {
+        <div class="mb-6 flex items-center gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+            <a href="@(ViewBag.BackUrl ?? Url.Action("MyInvoices", "TenantBilling"))" class="p-1.5 rounded-lg bg-white border border-blue-100 hover:bg-blue-50 transition-colors">
+                <span class="material-symbols-outlined text-blue-600 text-[20px]">arrow_back</span>
+            </a>
+            <div>
+                <p class="text-xs font-bold text-blue-500 uppercase tracking-wider">Lọc theo phòng</p>
+                <p class="font-bold text-blue-900">Hóa đơn Phòng @ViewBag.RoomNumber</p>
+            </div>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 flex flex-col items-center justify-center text-center">
+            <div class="w-20 h-20 bg-gray-50 text-gray-300 rounded-full flex items-center justify-center mb-4">
+                <span class="material-symbols-outlined text-4xl">receipt_long</span>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Chưa có hóa đơn nào</h3>
+            <p class="text-gray-500 text-sm max-w-xs">
+                @if (ViewBag.FilteredByRoom == true)
+                {
+                    <text>Phòng @ViewBag.RoomNumber chưa có hóa đơn nào được tạo.</text>
+                }
+                else
+                {
+                    <text>Bạn chưa có hóa đơn nào. Hóa đơn sẽ hiện ở đây sau khi chủ nhà chốt số.</text>
+                }
+            </p>
+        </div>
+    }
+    else
+    {
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @foreach (var inv in Model)
+        {
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all">
+                <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <div>
+                        <p class="text-xs font-bold text-gray-500 uppercase">Tháng @inv.InvoiceDate.Month/@inv.InvoiceDate.Year</p>
+                        <h3 class="text-lg font-black text-gray-900">Phòng @inv.RoomNumber</h3>
+                    </div>
+                    @if (inv.Status == InvoiceStatus.Paid)
+                    {
+                        <span class="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">check_circle</span> Đã thanh toán
+                        </span>
+                    }
+                    else if (inv.Status == InvoiceStatus.Pending)
+                    {
+                        <span class="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">hourglass_empty</span> Chờ duyệt
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">error</span> Chưa đóng
+                        </span>
+                    }
+                </div>
+                <div class="p-5">
+                    <p class="text-sm text-gray-500 mb-1">Tổng tiền cần thanh toán</p>
+                    <p class="text-3xl font-black text-red-600 mb-6">@inv.TotalAmount.ToString("N0")<span class="text-base text-red-400">đ</span></p>
+                    
+                    <button onclick="openPaymentModal(@inv.InvoiceId)" class="w-full bg-slate-900 text-white py-2.5 rounded-lg font-bold hover:bg-orange-500 transition-colors flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-[18px]">visibility</span> Xem chi tiết & Thanh toán
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+    }
+</div>
+
+<div id="paymentModal" class="fixed inset-0 z-50 hidden bg-gray-900/80 backdrop-blur-sm items-center justify-center">
+    <div class="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row h-[90vh] md:h-auto scale-95 opacity-0 transition-all duration-200" id="paymentContent">
+        
+        <div class="flex-1 p-6 md:p-8 bg-gray-50 border-r border-gray-100 overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-black text-gray-900" id="m-title">Chi tiết Hóa đơn</h3>
+                <button onclick="closePaymentModal()" class="md:hidden text-gray-400 hover:text-gray-800"><span class="material-symbols-outlined">close</span></button>
+            </div>
+            
+            <div class="space-y-3" id="m-items">
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-gray-200 flex justify-between items-center">
+                <span class="font-bold text-gray-600">TỔNG CỘNG</span>
+                <span class="text-2xl font-black text-red-600" id="m-total">0đ</span>
+            </div>
+        </div>
+
+        <div class="w-full md:w-80 p-6 md:p-8 bg-white flex flex-col items-center justify-center text-center relative">
+            <button onclick="closePaymentModal()" class="hidden md:block absolute top-4 right-4 text-gray-400 hover:text-gray-800 bg-gray-100 rounded-full p-1"><span class="material-symbols-outlined">close</span></button>
+            
+            <div id="qr-container" class="w-full">
+                <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-4">
+                    <span class="material-symbols-outlined text-2xl">qr_code_scanner</span>
+                </div>
+                <h4 class="font-bold text-gray-900 mb-1">Quét mã để thanh toán</h4>
+                <p class="text-xs text-gray-500 mb-6">Mở App ngân hàng bất kỳ để quét. Số tiền và nội dung đã được điền tự động.</p>
+                
+                <div class="bg-white p-2 rounded-2xl shadow-sm border border-gray-100 mb-6 inline-block">
+                    <img id="m-qr-image" src="" alt="VietQR" class="w-48 h-48 object-contain rounded-xl" />
+                </div>
+                <div class="w-full text-left mb-6">
+                    <label class="block text-xs font-bold text-gray-700 mb-2">Tải ảnh biên lai (Bắt buộc) <span class="text-red-500">*</span></label>
+                    <input type="file" id="m-proof" accept="image/*" class="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
+                </div>
+                <button onclick="submitPayment()" id="btn-paid" class="w-full bg-green-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-500/30 hover:bg-green-600 transition-colors flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined text-[20px]">check_circle</span> TÔI ĐÃ CHUYỂN KHOẢN
+                </button>
+            </div>
+            
+            <div id="paid-status" class="hidden flex-col items-center justify-center w-full py-12">
+                <span class="material-symbols-outlined text-6xl text-green-500 mb-4">task_alt</span>
+                <h4 class="text-xl font-black text-gray-900">Hoàn tất</h4>
+                <p class="text-sm text-gray-500 mt-2">Hóa đơn đang chờ Chủ nhà duyệt.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        let currentInvoiceId = 0;
+
+        async function openPaymentModal(id) {
+            currentInvoiceId = id;
+            
+            // Hiện loading (bạn có thể tuỳ chỉnh UI loading)
+            
+            // Gọi API lấy chi tiết
+            const res = await fetch(`/TenantBilling/GetInvoiceDetail/${id}`);
+            const result = await res.json();
+            
+            if(!result.success) {
+                Swal.fire('Lỗi', result.message, 'error');
+                return;
+            }
+
+            const data = result.data;
+            document.getElementById('m-title').innerText = `Tháng ${data.month}/${data.year} - P.${data.roomNumber}`;
+            document.getElementById('m-total').innerText = data.totalAmount.toLocaleString('en-US') + 'đ';
+
+            // Đổ danh sách items
+            const itemsDiv = document.getElementById('m-items');
+            itemsDiv.innerHTML = '';
+            data.items.forEach(item => {
+                itemsDiv.innerHTML += `
+                    <div class="flex justify-between items-center py-2 border-b border-gray-200/50 border-dashed">
+                        <span class="text-sm font-medium text-gray-600">${item.description}</span>
+                        <span class="text-sm font-bold text-gray-900">${item.amount.toLocaleString('en-US')}đ</span>
+                    </div>
+                `;
+            });
+
+            // Nếu đã thanh toán / chờ duyệt thì ẩn QR đi
+            if (data.status !== 0) { // 0 = Unpaid
+                document.getElementById('qr-container').classList.add('hidden');
+                document.getElementById('paid-status').classList.remove('hidden');
+                document.getElementById('paid-status').classList.add('flex');
+            } else {
+                document.getElementById('qr-container').classList.remove('hidden');
+                document.getElementById('paid-status').classList.add('hidden');
+                document.getElementById('paid-status').classList.remove('flex');
+                
+                // SINH MÃ QR TỰ ĐỘNG BẰNG VIETQR API
+                const content = encodeURIComponent(`Thanh toan P${data.roomNumber} T${data.month}`);
+                const accountName = encodeURIComponent(data.ownerAccountName);
+                const qrUrl = `https://img.vietqr.io/image/${data.ownerBankName}-${data.ownerBankAccount}-compact2.jpg?amount=${data.totalAmount}&addInfo=${content}&accountName=${accountName}`;
+                document.getElementById('m-qr-image').src = qrUrl;
+            }
+
+            // Hiện Modal
+            const modal = document.getElementById('paymentModal');
+            const content = document.getElementById('paymentContent');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closePaymentModal() {
+            const modal = document.getElementById('paymentModal');
+            const content = document.getElementById('paymentContent');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 200);
+        }
+
+        async function submitPayment() {
+            const proofInput = document.getElementById('m-proof');
+            if(!proofInput.files || proofInput.files.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Thiếu thông tin',
+                    text: 'Vui lòng tải lên ảnh chụp màn hình giao dịch chuyển khoản!',
+                    confirmButtonColor: '#f97316'
+                });
+                return;
+            }
+
+            const btn = document.getElementById('btn-paid');
+            btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-[20px]">sync</span> Đang xử lý...`;
+            btn.disabled = true;
+
+            // [ĐÃ SỬA]: Dùng FormData để đính kèm File ảnh
+            const formData = new FormData();
+            formData.append("invoiceId", currentInvoiceId);
+            formData.append("paymentProof", proofInput.files[0]);
+
+            try {
+                const res = await fetch('/TenantBilling/SubmitPayment', {
+                    method: 'POST',
+                    body: formData // Không dùng JSON.stringify nữa
+                });
+                const result = await res.json();
+                
+                if(result.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Hoàn tất!',
+                        text: 'Đã gửi biên lai! Vui lòng chờ chủ nhà xác nhận.',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        timerProgressBar: true
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire('Thất bại', "Lỗi: " + result.message, 'error');
+                    btn.innerHTML = `<span class="material-symbols-outlined text-[20px]">check_circle</span> TÔI ĐÃ CHUYỂN KHOẢN`;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', "Lỗi kết nối đến máy chủ.", 'error');
+                btn.innerHTML = `<span class="material-symbols-outlined text-[20px]">check_circle</span> TÔI ĐÃ CHUYỂN KHOẢN`;
+                btn.disabled = false;
+            }
+        }
+    </script>
+}

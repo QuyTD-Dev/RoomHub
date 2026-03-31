@@ -22,7 +22,11 @@ namespace Domain.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
         public bool IsDeleted { get; set; }
-
+        public decimal ElectricityPrice { get; set; } = 0;
+        public decimal WaterPrice { get; set; } = 0;
+        public decimal InternetPrice { get; set; } = 0;
+        public decimal GarbagePrice { get; set; } = 0;
+        public string? ThumbnailUrl { get; set; }
         // Navigation
         public virtual ApplicationUser Owner { get; set; } = null!;
         public virtual ICollection<Floor> Floors { get; set; } = new List<Floor>();

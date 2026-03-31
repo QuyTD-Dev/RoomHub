@@ -1,0 +1,228 @@
+@using Domain.Enums
+@model List<Application.DTOs.Billing.InvoiceListViewModel>
+@{
+    ViewData["Title"] = "Quản lý Hóa đơn";
+    var buildings = ViewBag.Buildings as List<Application.DTOs.Buildings.BuildingListDto>;
+}
+
+<div class="max-w-7xl mx-auto px-4 py-8 pb-24">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-green-50 text-green-600 flex items-center justify-center">
+            <span class="material-symbols-outlined text-3xl">payments</span>
+        </div>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Quản lý Hóa đơn & Thu tiền</h1>
+            <p class="text-sm text-gray-500">Theo dõi trạng thái thanh toán của khách thuê và gạch nợ.</p>
+        </div>
+    </div>
+
+    <form method="get" class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 mb-6 flex flex-wrap gap-4 items-end">
+        <div class="flex-1 min-w-[250px]">
+            <label class="block text-xs font-bold text-gray-700 mb-1">Tòa nhà</label>
+            <select name="buildingId" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-green-500">
+                <option value="">-- Tất cả tòa nhà --</option>
+                @if (buildings != null)
+                {
+                    foreach (var b in buildings)
+                    {
+                        <option value="@b.Id" selected="@(ViewBag.SelectedBuildingId == b.Id ? "selected" : null)">@b.Name</option>
+                    }
+                }
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Kỳ chốt (Tháng)</label>
+            <select name="month" class="w-32 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none">
+                @for (int i = 1; i <= 12; i++)
+                {
+                    <option value="@i" selected="@(ViewBag.SelectedMonth == i ? "selected" : null)">Tháng @i</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Năm</label>
+            <select name="year" class="w-32 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none">
+                @for (int i = DateTime.Now.Year - 1; i <= DateTime.Now.Year + 1; i++)
+                {
+                    <option value="@i" selected="@(ViewBag.SelectedYear == i ? "selected" : null)">@i</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-gray-700 mb-1">Trạng thái</label>
+            @{
+                // Ép kiểu an toàn từ ViewBag ra biến cụ thể để so sánh
+                var currentStatus = ViewBag.SelectedStatus as InvoiceStatus?;
+            }
+            <select name="status" class="w-40 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-green-500">
+                <option value="">-- Tất cả --</option>
+                <option value="@((int)InvoiceStatus.Unpaid)" selected="@(currentStatus == InvoiceStatus.Unpaid ? "selected" : null)">
+                    Chưa thu 
+                </option>
+                <option value="@((int)InvoiceStatus.Pending)" selected="@(currentStatus == InvoiceStatus.Pending ? "selected" : null)">
+                    Chờ duyệt 
+                </option>
+                <option value="@((int)InvoiceStatus.Paid)" selected="@(currentStatus == InvoiceStatus.Paid ? "selected" : null)">
+                    Đã thu 
+                </option>
+            </select>
+        </div>
+        <button type="submit" class="bg-slate-800 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-slate-700 transition-colors h-[46px]">
+            Lọc Hóa đơn
+        </button>
+    </form>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        @if (Model != null && Model.Any())
+        {
+            <table class="w-full text-left border-collapse min-w-[900px]">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200 text-xs uppercase tracking-wider text-gray-500">
+                        <th class="p-4 font-bold">Phòng / Khách thuê</th>
+                        <th class="p-4 font-bold text-center">Kỳ Hóa đơn</th>
+                        <th class="p-4 font-bold text-right">Tổng Tiền (VNĐ)</th>
+                        <th class="p-4 font-bold text-center">Trạng thái</th>
+                        <th class="p-4 font-bold text-center">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var inv in Model)
+                    {
+                        <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                            <td class="p-4">
+                                <p class="font-black text-gray-900 text-lg">P.@inv.RoomNumber</p>
+                                <p class="text-xs font-medium text-gray-500">@inv.TenantName (@inv.TenantEmail)</p>
+                            </td>
+                            <td class="p-4 text-center font-medium text-gray-700">
+                                Tháng @inv.InvoiceDate.Month/@inv.InvoiceDate.Year
+                            </td>
+                            <td class="p-4 text-right font-black text-red-600 text-lg">
+                                @inv.TotalAmount.ToString("N0")
+                            </td>
+                            <td class="p-4 text-center">
+                                @if (inv.Status == InvoiceStatus.Paid)
+                                {
+                                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
+                                        <span class="material-symbols-outlined text-[14px]">check_circle</span> Đã thanh toán
+                                    </span>
+                                }
+                                else if (inv.Status == InvoiceStatus.Pending)
+                                {
+                                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold">
+                                        <span class="material-symbols-outlined text-[14px]">hourglass_empty</span> Chờ duyệt
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">
+                                        <span class="material-symbols-outlined text-[14px]">error</span> Chưa thu
+                                    </span>
+                                }
+                            </td>
+                            <td class="p-4 text-center">
+                                @* Nếu khách đã tải ảnh bill lên, hiện nút "Xem UNC" *@
+                                @if (!string.IsNullOrEmpty(inv.PaymentProofPath))
+                                {
+                                    <a href="@inv.PaymentProofPath" target="_blank" class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline text-xs mb-3 font-bold bg-blue-50 px-3 py-1.5 rounded-lg transition-colors">
+                                        <span class="material-symbols-outlined text-[16px]">receipt_long</span> Xem hóa đơn chuyển tiền
+                                    </a>
+                                }
+
+                                @if (inv.Status != InvoiceStatus.Paid)
+                                {
+                                    <button onclick="confirmPayment(@inv.InvoiceId)" class="btn-confirm-@inv.InvoiceId bg-green-500 text-white px-4 py-2 rounded-lg text-xs font-bold shadow hover:bg-green-600 transition-colors flex items-center gap-1 mx-auto w-full justify-center">
+                                        <span class="material-symbols-outlined text-[16px]">task_alt</span> Xác nhận thu tiền
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="text-gray-400 text-xs italic font-medium">Hoàn tất</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            @if (ViewBag.TotalPages > 1)
+            {
+                <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+                    <span class="text-sm text-gray-500">
+                        Trang <span class="font-bold text-gray-900">@ViewBag.CurrentPage</span> / @ViewBag.TotalPages
+                    </span>
+                    <div class="flex gap-1">
+                        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                        {
+                            <a href="@Url.Action("Invoices", new { buildingId = ViewBag.SelectedBuildingId, month = ViewBag.SelectedMonth, year = ViewBag.SelectedYear, status = ViewBag.SelectedStatus, page = i })"
+                                   class="w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold transition-colors @(i == ViewBag.CurrentPage ? "bg-slate-800 text-white shadow-md" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-slate-800")">
+                                @i
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="text-center py-12">
+                <span class="material-symbols-outlined text-gray-300 text-6xl mb-4">receipt</span>
+                <h3 class="text-lg font-bold text-gray-900">Chưa có hóa đơn nào</h3>
+                <p class="text-gray-500">Chưa có dữ liệu cho khoảng thời gian này.</p>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        async function confirmPayment(invoiceId) {
+            Swal.fire({
+                title: 'Xác nhận thu tiền',
+                text: "Bạn có chắc chắn khách đã thanh toán hóa đơn này?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#22c55e',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Xác nhận',
+                cancelButtonText: 'Hủy bỏ'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+
+            const btn = document.querySelector(`.btn-confirm-${invoiceId}`);
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-[16px]">sync</span> Đang xử lý...`;
+            btn.disabled = true;
+
+                    try {
+                        const response = await fetch('/Billing/MarkAsPaid', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(invoiceId)
+                        });
+                        
+                        const data = await response.json();
+                        if(data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công!',
+                                text: 'Đã xác nhận thanh toán.',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire('Thất bại', "Lỗi: " + data.message, 'error');
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        }
+                    } catch (err) {
+                        Swal.fire('Lỗi', "Lỗi kết nối Server.", 'error');
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
+                }
+            });
+        }
+    </script>
+}
