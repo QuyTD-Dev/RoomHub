@@ -164,6 +164,7 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         let currentInvoiceId = 0;
 
@@ -177,7 +178,8 @@
             const result = await res.json();
             
             if(!result.success) {
-                alert("Lỗi: " + result.message); return;
+                Swal.fire('Lỗi', result.message, 'error');
+                return;
             }
 
             const data = result.data;
@@ -238,7 +240,12 @@
         async function submitPayment() {
             const proofInput = document.getElementById('m-proof');
             if(!proofInput.files || proofInput.files.length === 0) {
-                alert("Vui lòng tải lên ảnh chụp màn hình hóa đơn chuyển khoản!");
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Thiếu thông tin',
+                    text: 'Vui lòng tải lên ảnh chụp màn hình giao dịch chuyển khoản!',
+                    confirmButtonColor: '#f97316'
+                });
                 return;
             }
 
@@ -259,15 +266,24 @@
                 const result = await res.json();
                 
                 if(result.success) {
-                    alert("Đã gửi biên lai! Vui lòng chờ chủ nhà xác nhận.");
-                    window.location.reload();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Hoàn tất!',
+                        text: 'Đã gửi biên lai! Vui lòng chờ chủ nhà xác nhận.',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        timerProgressBar: true
+                    }).then(() => {
+                        window.location.reload();
+                    });
                 } else {
-                    alert("Lỗi: " + result.message);
+                    Swal.fire('Thất bại', "Lỗi: " + result.message, 'error');
                     btn.innerHTML = `<span class="material-symbols-outlined text-[20px]">check_circle</span> TÔI ĐÃ CHUYỂN KHOẢN`;
                     btn.disabled = false;
                 }
             } catch (err) {
-                alert("Lỗi kết nối.");
+                Swal.fire('Lỗi', "Lỗi kết nối đến máy chủ.", 'error');
+                btn.innerHTML = `<span class="material-symbols-outlined text-[20px]">check_circle</span> TÔI ĐÃ CHUYỂN KHOẢN`;
                 btn.disabled = false;
             }
         }

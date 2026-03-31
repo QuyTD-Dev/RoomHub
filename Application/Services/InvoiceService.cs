@@ -1,4 +1,4 @@
-﻿using Application.DTOs.Billing;
+using Application.DTOs.Billing;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services;
 using Domain.Entities;
@@ -145,7 +145,40 @@ namespace Application.Services
                 });
             }
 
-            return await _invoiceRepo.SaveInvoicesAndReadingsAsync(newInvoices, newReadings);
+            var saveResult = await _invoiceRepo.SaveInvoicesAndReadingsAsync(newInvoices, newReadings);
+
+            // Sau khi lưu thành công, gửi thông báo cho từng khách thuê
+            if (saveResult)
+            {
+                var notifications = new List<Notification>();
+                foreach (var inv in newInvoices)
+                {
+                    // Tìm hợp đồng tương ứng để lấy TenantId
+                    var correspondingRoom = readings.FirstOrDefault(r => r.ContractId == inv.ContractId);
+                    var room = rooms.FirstOrDefault(r => r.Contracts.Any(c => c.Id == inv.ContractId));
+                    var contract = room?.Contracts.FirstOrDefault(c => c.Id == inv.ContractId);
+
+                    if (contract?.TenantId == null) continue;
+
+                    notifications.Add(new Notification
+                    {
+                        UserId = contract.TenantId,
+                        Type = "NewInvoice",
+                        Title = "Hóa đơn tiền thuê đã được gửi",
+                        Content = $"Hóa đơn tiền thuê phòng {room.RoomNumber} tháng {inv.InvoiceDate.Month}/{inv.InvoiceDate.Year} đã sẵn sàng. Vui lòng vào trang Hóa đơn để xem chi tiết và thanh toán trước ngày {inv.DueDate:dd/MM/yyyy}.",
+                        LinkedId = inv.Id,
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+
+                if (notifications.Any())
+                {
+                    await _invoiceRepo.SaveNotificationsAsync(notifications);
+                }
+            }
+
+            return saveResult;
         }
         // Cập nhật lại toàn bộ hàm GetInvoicesAsync
         public async Task<(List<InvoiceListViewModel> Items, int TotalPages, int CurrentPage)> GetInvoicesAsync(string landlordId, int? buildingId, int? month, int? year, InvoiceStatus? status = null, int pageIndex = 1, int pageSize = 10)

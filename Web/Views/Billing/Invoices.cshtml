@@ -1,4 +1,4 @@
-﻿@using Domain.Enums
+@using Domain.Enums
 @model List<Application.DTOs.Billing.InvoiceListViewModel>
 @{
     ViewData["Title"] = "Quản lý Hóa đơn";
@@ -173,36 +173,56 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         async function confirmPayment(invoiceId) {
-            if(!confirm("Bạn xác nhận Khách đã thanh toán hóa đơn này chứ?")) return;
+            Swal.fire({
+                title: 'Xác nhận thu tiền',
+                text: "Bạn có chắc chắn khách đã thanh toán hóa đơn này?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#22c55e',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Xác nhận',
+                cancelButtonText: 'Hủy bỏ'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
 
             const btn = document.querySelector(`.btn-confirm-${invoiceId}`);
             const originalText = btn.innerHTML;
             btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-[16px]">sync</span> Đang xử lý...`;
             btn.disabled = true;
 
-            try {
-                const response = await fetch('/Billing/MarkAsPaid', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(invoiceId)
-                });
-                
-                const data = await response.json();
-                if(data.success) {
-                    // Load lại trang để cập nhật Status
-                    window.location.reload();
-                } else {
-                    alert("Lỗi: " + data.message);
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
+                    try {
+                        const response = await fetch('/Billing/MarkAsPaid', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(invoiceId)
+                        });
+                        
+                        const data = await response.json();
+                        if(data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công!',
+                                text: 'Đã xác nhận thanh toán.',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire('Thất bại', "Lỗi: " + data.message, 'error');
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        }
+                    } catch (err) {
+                        Swal.fire('Lỗi', "Lỗi kết nối Server.", 'error');
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
                 }
-            } catch (err) {
-                alert("Lỗi kết nối Server.");
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
+            });
         }
     </script>
 }

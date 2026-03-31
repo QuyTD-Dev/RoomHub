@@ -1,4 +1,4 @@
-﻿using Application.DTOs.Billing;
+using Application.DTOs.Billing;
 using static Application.DTOs.Billing.InvoiceListViewModel;
 
 namespace Application.Interfaces.Services

@@ -198,9 +198,31 @@
                         <span class="material-symbols-outlined text-2xl">chat</span>
                     </a>
                 }
-                <button class="p-2 text-slate-700 hover:text-primary transition">
-                    <span class="material-symbols-outlined text-2xl">notifications</span>
-                </button>
+                <div class="relative inline-block text-left" id="notification-wrapper">
+                    <button id="nav-notification-bell" class="relative p-2 text-slate-700 hover:bg-slate-100 rounded-full transition-all focus:outline-none">
+                        <span class="material-symbols-outlined text-2xl">notifications</span>
+                        <!-- Nơi hiển thị Badge số lượng -->
+                        <div id="notification-badge" class="hidden absolute top-1 right-1 w-4 h-4 bg-red-600 text-[10px] font-bold text-white flex items-center justify-center rounded-full border border-white">0</div>
+                    </button>
+
+                    <!-- Dropdown Panel (Facebook style) -->
+                    <div id="notification-dropdown" class="hidden absolute right-0 mt-3 w-[360px] bg-white rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.12)] border border-gray-100 z-[9999] overflow-hidden origin-top-right transition-all">
+                        <div class="p-4 border-b border-gray-50 flex justify-between items-center bg-white sticky top-0">
+                            <h3 class="text-lg font-extrabold text-gray-900">Thông báo</h3>
+                            <button onclick="markAllNotificationsAsRead()" class="text-xs font-bold text-blue-600 hover:bg-blue-50 px-2 py-1 rounded">Đánh dấu đã đọc</button>
+                        </div>
+                        <div id="notification-list" class="max-h-[420px] overflow-y-auto overflow-x-hidden custom-scrollbar divide-y divide-gray-50">
+                            <!-- Template mẫu loading -->
+                            <div class="p-8 text-center text-gray-400">
+                                <span class="material-symbols-outlined animate-spin text-2xl">sync</span>
+                                <p class="text-xs mt-1">Đang tải...</p>
+                            </div>
+                        </div>
+                        <div class="p-3 border-t border-gray-50 text-center bg-gray-50/30">
+                            <a href="#" class="text-xs font-bold text-blue-600 hover:underline">Xem tất cả thông báo</a>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             @* NÚT ĐĂNG TIN: chỉ hiện với Owner/Admin *@
@@ -656,6 +678,218 @@
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)
+
+    @if (User.Identity.IsAuthenticated)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script>
+            // Logic Thông báo kiểu Facebook
+            const bellBtn = document.getElementById('nav-notification-bell');
+            const dropdown = document.getElementById('notification-dropdown');
+            const list = document.getElementById('notification-list');
+            const badge = document.getElementById('notification-badge');
+            let isDropdownOpen = false;
+
+            // Toggle Dropdown
+            if(bellBtn) {
+                bellBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    isDropdownOpen = !isDropdownOpen;
+                    dropdown.classList.toggle('hidden');
+                    if (isDropdownOpen) fetchNotifications();
+                });
+            }
+
+            document.addEventListener('click', (e) => {
+                if (dropdown && !dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                    isDropdownOpen = false;
+                }
+            });
+
+            // Tự động fetch số lượng unread khi vừa vào trang
+            document.addEventListener('DOMContentLoaded', updateUnreadBadge);
+
+            async function updateUnreadBadge() {
+                try {
+                    const res = await fetch('/Notifications/GetTop');
+                    console.log("Status lấy thông báo:", res.status);
+                    const data = await res.json();
+                    console.log("Dữ liệu thông báo nhận được:", data);
+                    
+                    // Xử lý linh hoạt cả PascalCase và camelCase
+                    const unreadCount = data.unreadCount !== undefined ? data.unreadCount : data.UnreadCount;
+                    const notifications = data.notifications !== undefined ? data.notifications : data.Notifications;
+
+                    if (unreadCount > 0) {
+                        badge.innerText = unreadCount > 9 ? '9+' : unreadCount;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                    
+                    // Nếu là Tenant và có mời thuê mới thì auto-popup
+                    @if (User.IsInRole("Tenant")) {
+                        <text>
+                        if (notifications && Array.isArray(notifications)) {
+                            const invitations = notifications.filter(n => {
+                                const type = n.type || n.Type;
+                                const isRead = n.isRead !== undefined ? n.isRead : n.IsRead;
+                                return type === 'ContractAssign' && !isRead;
+                            });
+                            if(invitations.length > 0) {
+                                // Tùy chọn: showPendingInvitationPopup(invitations[0].linkedId || invitations[0].LinkedId);
+                            }
+                        }
+                        </text>
+                    }
+                } catch(e) {
+                    console.error("Lỗi cập nhật Badge thông báo:", e);
+                }
+            }
+
+            async function fetchNotifications() {
+                list.innerHTML = `<div class="p-8 text-center text-gray-400"><span class="material-symbols-outlined animate-spin text-2xl">sync</span></div>`;
+                try {
+                    const res = await fetch('/Notifications/GetTop');
+                    const data = await res.json();
+                    
+                    const notifications = data.notifications !== undefined ? data.notifications : data.Notifications;
+
+                    if (!notifications || notifications.length === 0) {
+                        list.innerHTML = `<div class="p-10 text-center text-gray-400"><p class="text-sm">Bạn chưa có thông báo nào.</p></div>`;
+                        return;
+                    }
+
+                    list.innerHTML = notifications.map(n => {
+                        const id = n.id || n.Id;
+                        const type = n.type || n.Type;
+                        const title = n.title || n.Title;
+                        const content = n.content || n.Content;
+                        const timeAgo = n.timeAgo || n.TimeAgo;
+                        const isRead = n.isRead !== undefined ? n.isRead : n.IsRead;
+                        const linkedId = n.linkedId !== undefined ? n.linkedId : n.LinkedId;
+
+                        return `
+                            <div onclick="handleNotifClick(${id}, '${type}', ${linkedId})" 
+                                 class="p-4 hover:bg-gray-50 flex gap-3 cursor-pointer transition-colors ${isRead ? '' : 'bg-blue-50/50'}" id="notif-${id}">
+                                <div class="w-11 h-11 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                                    <span class="material-symbols-outlined text-xl">${getIconForType(type)}</span>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-bold text-gray-900 leading-tight mb-1">${title}</p>
+                                    <p class="text-xs text-gray-600 line-clamp-2 mb-1">${content}</p>
+                                    <span class="text-[10px] font-bold text-blue-600 uppercase tracking-tighter">${timeAgo}</span>
+                                </div>
+                                ${isRead ? '' : '<div class="w-2.5 h-2.5 bg-blue-600 rounded-full mt-2 shrink-0"></div>'}
+                            </div>
+                        `;
+                    }).join('');
+                } catch(e) {
+                    console.error("Lỗi lấy danh sách thông báo:", e);
+                    list.innerHTML = `<div class="p-8 text-center text-red-400 group"><span class="material-symbols-outlined">error</span><p class="text-xs">Lỗi tải dữ liệu.</p></div>`;
+                }
+            }
+
+            function getIconForType(type) {
+                switch(type) {
+                    case 'ContractAssign': return 'assignment_ind';
+                    case 'ContractResponse': return 'handshake';
+                    case 'Billing': return 'receipt_long';
+                    default: return 'notifications';
+                }
+            }
+
+            async function handleNotifClick(requestId, type, linkedId) {
+                // 1. Mark as read on server
+                fetch('/Notifications/MarkAsRead/' + requestId, { method: 'POST' });
+                
+                // 2. Update UI
+                const item = document.getElementById('notif-' + requestId);
+                if(item) {
+                    item.classList.remove('bg-blue-50/50');
+                    const dot = item.querySelector('.bg-blue-600.rounded-full');
+                    if(dot) dot.remove();
+                }
+                updateUnreadBadge();
+
+                // 3. Action based on type
+                if (type === 'ContractAssign') {
+                    // Mở popup nhận phòng (Lấy lại dữ liệu hợp đồng bản nháp)
+                    showPendingInvitationPopup(linkedId);
+                } else if (type === 'ContractResponse') {
+                    // Nếu chủ nhà nhận phản hồi, click vào sẽ load lại trang để thấy màu phòng thay đổi
+                    window.location.reload();
+                }
+            }
+
+            async function markAllNotificationsAsRead() {
+                try {
+                    await fetch('/Notifications/MarkAllAsRead', { method: 'POST' });
+                    updateUnreadBadge();
+                    fetchNotifications();
+                } catch(e) {}
+            }
+
+            // Logic Popup (Mượn từ cũ nhưng tối ưu)
+            async function showPendingInvitationPopup(contractId) {
+                Swal.fire({
+                    title: 'Đang chuẩn bị...',
+                    didOpen: () => Swal.showLoading()
+                });
+
+                // Cần 1 API để lấy nhanh info contract từ ID
+                try {
+                    const res = await fetch('/TenantBilling/GetPendingContracts'); // API cũ của bạn trả về danh sách
+                    const data = await res.json();
+                    
+                    // Hỗ trợ cả PascalCase và camelCase cho data trả về từ Controller
+                    const list = data.data !== undefined ? data.data : data.Data;
+                    const c = list ? list.find(x => (x.contractId || x.ContractId) == contractId) : null;
+
+                    if(!c) {
+                        console.warn("Không tìm thấy hợp đồng ID:", contractId, "trong danh sách:", list);
+                        Swal.fire('Thông báo', 'Hợp đồng này không còn tồn tại hoặc đã được xử lý.', 'warning');
+                        return;
+                    }
+
+                    const ownerName = c.ownerName || c.OwnerName;
+                    const roomNumber = c.roomNumber || c.RoomNumber;
+                    const date = c.date || c.Date;
+                    const rent = c.rent !== undefined ? c.rent : c.Rent;
+
+                    Swal.fire({
+                        title: 'Lời Mời Nhận Phòng!',
+                        html: `Chủ nhà <b>${ownerName}</b> mời bạn vào Phòng <b>P.${roomNumber}</b><br>
+                               Ngày ở: <b>${date}</b><br>
+                               Giá: <b class="text-red-500">${rent.toLocaleString()} đ/tháng</b>`,
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonText: 'Đồng ý',
+                        cancelButtonText: 'Từ chối'
+                    }).then(async (result) => {
+                        if (result.isConfirmed) await submitInvitationResponse(contractId, true);
+                        else if (result.dismiss === Swal.DismissReason.cancel) await submitInvitationResponse(contractId, false);
+                    });
+                } catch(e) { 
+                    console.error("Lỗi khi mở popup lời mời:", e);
+                    Swal.close(); 
+                }
+            }
+
+            async function submitInvitationResponse(id, accept) {
+                Swal.fire({ title: 'Đang xử lý...', didOpen: () => Swal.showLoading() });
+                const res = await fetch('/TenantBilling/RespondToContract?contractId=' + id + '&accept=' + accept, { method: 'POST' });
+                const d = await res.json();
+                if(d.success) {
+                    Swal.fire({ title: 'Hoàn tất!', icon: 'success', timer: 1500, showConfirmButton: false })
+                        .then(() => window.location.reload());
+                } else {
+                    Swal.fire('Lỗi', d.message, 'error');
+                }
+            }
+        </script>
+    }
 
     <script src="~/js/layout.js"></script>
     <script>

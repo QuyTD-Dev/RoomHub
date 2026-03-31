@@ -114,7 +114,8 @@ namespace Web.Controllers
 
         // [QUAN TRỌNG NHẤT]: Phải dùng [FromForm] cho cả 2 biến, tuyệt đối không còn chữ [FromBody] nào ở đây
         [HttpPost]
-        public async Task<IActionResult> SubmitPayment([FromForm] int invoiceId, [FromForm] IFormFile? paymentProof)
+        public async Task<IActionResult> SubmitPayment([FromForm] int invoiceId, [FromForm] IFormFile? paymentProof,
+            [FromServices] Infrastructure.Persistence.ApplicationDbContext context)
         {
             try
             {
@@ -130,6 +131,30 @@ namespace Web.Controllers
 
                 // Gọi Service để cập nhật trạng thái "Chờ duyệt" và lưu link ảnh
                 await _invoiceService.SubmitPaymentProofAsync(invoiceId, tenantId, proofUrl);
+
+                // Gửi thông báo cho chủ nhà
+                var invoice = await context.Invoices
+                    .Include(i => i.Contract)
+                        .ThenInclude(c => c.Room)
+                    .Include(i => i.Contract.Tenant)
+                    .FirstOrDefaultAsync(i => i.Id == invoiceId);
+
+                if (invoice != null)
+                {
+                    var tenantName = invoice.Contract.Tenant?.FullName ?? User.Identity!.Name ?? "Khách thuê";
+                    context.Notifications.Add(new Domain.Entities.Notification
+                    {
+                        UserId = invoice.Contract.OwnerId,
+                        Type = "PaymentSubmitted",
+                        Title = "Khách đã chuyển khoản",
+                        Content = $"{tenantName} đã gửi biên lai thanh toán hóa đơn Phòng {invoice.Contract.Room.RoomNumber} tháng {invoice.InvoiceDate.Month}/{invoice.InvoiceDate.Year}. Vui lòng kiểm tra và xác nhận.",
+                        LinkedId = invoiceId,
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    await context.SaveChangesAsync();
+                }
+
                 return Json(new { success = true });
             }
             catch (Exception ex)
@@ -137,6 +162,86 @@ namespace Web.Controllers
                 // Nếu Cloudinary lỗi mạng, nó sẽ nhảy vào đây và báo JSON "Lỗi:..." chứ không bị 500
                 return Json(new { success = false, message = ex.Message });
             }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetPendingContracts([FromServices] Infrastructure.Persistence.ApplicationDbContext context)
+        {
+            var tenantId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var pending = await context.Contracts
+                .Include(c => c.Room)
+                .ThenInclude(r => r.Floor)
+                .ThenInclude(f => f.Building)
+                .Include(c => c.Owner)
+                .Where(c => c.TenantId == tenantId && c.Status == Domain.Enums.ContractStatus.Draft)
+                .Select(c => new {
+                    contractId = c.Id,
+                    roomNumber = c.Room.RoomNumber,
+                    buildingName = c.Room.Floor.Building.Name,
+                    ownerName = c.Owner.FullName,
+                    rent = c.RentAmount,
+                    date = c.StartDate.ToString("dd/MM/yyyy")
+                })
+                .ToListAsync();
+
+            return Json(new { count = pending.Count, data = pending });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RespondToContract(int contractId, bool accept, [FromServices] Infrastructure.Persistence.ApplicationDbContext context)
+        {
+            var tenantId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+            var contract = await context.Contracts
+                .Include(c => c.Room)
+                .Include(c => c.Owner)
+                .FirstOrDefaultAsync(c => c.Id == contractId && c.TenantId == tenantId && c.Status == Domain.Enums.ContractStatus.Draft);
+
+            if (contract == null) return Json(new { success = false, message = "Không tìm thấy lời mời nhận phòng." });
+
+            if (accept)
+            {
+                contract.Status = Domain.Enums.ContractStatus.Active;
+                contract.Room.Status = Domain.Enums.RoomStatus.Occupied; // CẬP NHẬT: Chuyển sang Đang Ở
+                
+                // Gửi thông báo lại cho chủ nhà
+                var notif = new Domain.Entities.Notification
+                {
+                    UserId = contract.OwnerId,
+                    Type = "ContractResponse",
+                    Title = "Khách đã nhận phòng",
+                    Content = $"Khách thuê {User.Identity.Name} đã CHẤP NHẬN vào ở Phòng P.{contract.Room.RoomNumber}.",
+                    LinkedId = contract.RoomId,
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.Notifications.Add(notif);
+            }
+            else
+            {
+                // Từ chối -> Xóa cứng hợp đồng nháp & Đổi trạng thái phòng lại Available (CẬP NHẬT)
+                contract.Room.Status = Domain.Enums.RoomStatus.Available;
+                
+                var notif = new Domain.Entities.Notification
+                {
+                    UserId = contract.OwnerId,
+                    Type = "ContractResponse",
+                    Title = "Khách từ chối phòng",
+                    Content = $"Khách thuê {User.Identity.Name} đã TỪ CHỐI lời mời vào Phòng P.{contract.Room.RoomNumber}.",
+                    LinkedId = contract.RoomId,
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+                context.Notifications.Add(notif);
+                
+                // Xóa cả hóa đơn điện nước nháp nếu có
+                var readings = await context.UtilityReadings.Where(u => u.ContractId == contract.Id).ToListAsync();
+                if(readings.Any()) context.UtilityReadings.RemoveRange(readings);
+
+                context.Contracts.Remove(contract); // Xóa cứng Draft để dọn rác DB
+            }
+
+            await context.SaveChangesAsync();
+            return Json(new { success = true });
         }
     }
 }
